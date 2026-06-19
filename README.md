@@ -1,4 +1,4 @@
-> [!DANGER]
+> [!CAUTION]
 > Harnss is currently pending a large rewrite to improve usability, performance and overall codebase into a more production ready app. I will share more info about it soon.
 
 > [!WARNING]
