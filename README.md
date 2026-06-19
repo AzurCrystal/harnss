@@ -1,3 +1,6 @@
+> [!DANGER]
+> Harnss is currently pending a large rewrite to improve usability, performance and overall codebase into a more production ready app. I will share more info about it soon.
+
 > [!WARNING]
 > Harnss is in early development and issues are to be expected. Please feel free to report bugs and issues in the Issues section.
 
