@@ -6,6 +6,9 @@ logs/
 .DS_Store
 docs/
 /release/
+# Internal project ledger — kept local, not published to the fork
+GOAL.md
+PROGRESS.md
 .claude/agent-memory/
 frontend/
 cli
