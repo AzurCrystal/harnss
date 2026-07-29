@@ -104,7 +104,10 @@ jobs:
   build-win:
     needs: [prepare-release, test]
     if: ${{ always() && needs.test.result == 'success' && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped') }}
-    runs-on: windows-latest
+    # Pin to windows-2022: windows-latest moved to the windows-2025-vs2026 image,
+    # and node-gyp (used by @electron/rebuild for node-pty) does not recognize
+    # Visual Studio 2026 — "Could not find any Visual Studio installation".
+    runs-on: windows-2022
     steps:
       - name: Checkout
         uses: actions/checkout@v4
