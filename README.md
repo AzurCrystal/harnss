@@ -1,8 +1,8 @@
-> [!CAUTION]
-> Harnss is currently pending a large rewrite to improve usability, performance and overall codebase into a more production ready app. I will share more info about it soon.
+> [!NOTE]
+> This is a fork of [OpenSource03/harnss](https://github.com/OpenSource03/harnss) rebuilt as a dedicated desktop frontend for oh-my-pi (OMP). It is designed and verified for **OMP 17.1.x (RPC protocol v2)** — other OMP versions are untested and may fail the protocol handshake. OMP is **not bundled**: install OMP yourself and make sure `omp` is on your PATH.
 
 > [!WARNING]
-> Harnss is in early development and issues are to be expected. Please feel free to report bugs and issues in the Issues section.
+> Harnss is in early development and issues are to be expected. Please report bugs in the Issues section.
 
 <p align="center">
   <img alt="harnss_banner" src="https://github.com/user-attachments/assets/88f4dce1-c12b-493a-be8c-a3c418293ef4" />
@@ -13,12 +13,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OpenSource03/harnss/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/OpenSource03/harnss?style=flat-square&color=blue" /></a>
-  <a href="https://github.com/OpenSource03/harnss/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/OpenSource03/harnss?style=flat-square" /></a>
+  <a href="https://github.com/AzurCrystal/harnss/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/AzurCrystal/harnss?style=flat-square&color=blue" /></a>
+  <a href="https://github.com/AzurCrystal/harnss/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/AzurCrystal/harnss?style=flat-square" /></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen?style=flat-square" />
   <img alt="Electron" src="https://img.shields.io/badge/electron-40-47848F?style=flat-square&logo=electron&logoColor=white" />
-  <img alt="License" src="https://img.shields.io/github/license/OpenSource03/harnss?style=flat-square" />
-  <a href="https://github.com/OpenSource03/harnss/actions"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/OpenSource03/harnss/build.yml?style=flat-square&label=build" /></a>
+  <img alt="License" src="https://img.shields.io/github/license/AzurCrystal/harnss?style=flat-square" />
+  <a href="https://github.com/AzurCrystal/harnss/actions"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/AzurCrystal/harnss/build.yml?style=flat-square&label=build" /></a>
 </p>
 
 ---
@@ -126,15 +126,16 @@ Full-text search across session titles and message content. Import and resume co
 
 ## Quick Start
 
-1. **Download** the latest release for your platform from the [Releases page](https://github.com/OpenSource03/harnss/releases/latest)
-2. **Open a project** — point Harnss at any folder on disk
-3. **Start an OMP session** — choose a model and begin working
+1. **Install OMP** — this build requires oh-my-pi **17.1.x** available as `omp` on your PATH (the runtime is not bundled)
+2. **Download** the latest release for your platform from the [Releases page](https://github.com/AzurCrystal/harnss/releases/latest)
+3. **Open a project** — point Harnss at any folder on disk
+4. **Start an OMP session** — choose a model and begin working
 
 ---
 
 ## Runtime
 
-Harnss uses oh-my-pi (OMP) as its only agent runtime and communicates through the official OMP RPC protocol. Claude Code, Codex, ACP agents, and the ACP Agent Store are not included as agent backends.
+Harnss uses oh-my-pi (OMP) as its only agent runtime and communicates through the official OMP RPC protocol (**protocol v2**, designed and verified against OMP 17.1.x). The runtime is user-installed and resolved from PATH — no OMP binary is bundled. Claude Code, Codex, ACP agents, and the ACP Agent Store are not included as agent backends.
 
 ## MCP Servers
 
@@ -149,18 +150,18 @@ MCP servers are configured per project through the **MCP Servers panel** in the 
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [`.dmg` (arm64)](https://github.com/OpenSource03/harnss/releases/latest) |
-| macOS (Intel) | [`.dmg` (x64)](https://github.com/OpenSource03/harnss/releases/latest) |
-| Windows (x64) | [`.exe` installer](https://github.com/OpenSource03/harnss/releases/latest) |
-| Windows (ARM64) | [`.exe` installer](https://github.com/OpenSource03/harnss/releases/latest) |
-| Linux | [`.AppImage`](https://github.com/OpenSource03/harnss/releases/latest) / [`.deb`](https://github.com/OpenSource03/harnss/releases/latest) |
+| macOS (Apple Silicon) | [`.dmg` (arm64)](https://github.com/AzurCrystal/harnss/releases/latest) |
+| macOS (Intel) | [`.dmg` (x64)](https://github.com/AzurCrystal/harnss/releases/latest) |
+| Windows (x64) | [`.exe` installer](https://github.com/AzurCrystal/harnss/releases/latest) |
+| Windows (ARM64) | [`.exe` installer](https://github.com/AzurCrystal/harnss/releases/latest) |
+| Linux | [`.AppImage`](https://github.com/AzurCrystal/harnss/releases/latest) / [`.deb`](https://github.com/AzurCrystal/harnss/releases/latest) |
 
 ---
 
 ## Development
 
 ```bash
-git clone https://github.com/OpenSource03/harnss.git
+git clone https://github.com/AzurCrystal/harnss.git
 cd harnss
 pnpm install
 pnpm dev

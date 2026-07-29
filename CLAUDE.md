@@ -631,7 +631,7 @@ Always search the web when needed for up-to-date API references, Electron APIs, 
 **Release notes format**:
 - Start with `## What's New` (for feature releases) or `## Changes` (for smaller releases)
 - Group changes under `### Emoji Section Title` headers (e.g., `### 🌳 Git Worktree Management`)
-- End with `---` separator and `**Full Changelog**: https://github.com/OpenSource03/harnss/compare/v{prev}...v{current}`
+- End with `---` separator and `**Full Changelog**: https://github.com/AzurCrystal/harnss/compare/v{prev}...v{current}`
 - Use `gh release create` with tag, then `gh release edit` to set title + notes
 - **Write for users, not developers** — describe what the user *experiences*, never mention internal names, library names, or implementation details. "Long conversations are dramatically faster" not "replaced content-visibility with @tanstack/react-virtual". Full guidance in `.claude/skills/release/references/release-notes-template.md`.
 

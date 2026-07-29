@@ -8,10 +8,10 @@
     "email": "dejanzegarac3@gmail.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/OpenSource03/harnss",
+  "homepage": "https://github.com/AzurCrystal/harnss",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OpenSource03/harnss.git"
+    "url": "https://github.com/AzurCrystal/harnss.git"
   },
   "main": "electron/dist/main.js",
   "scripts": {

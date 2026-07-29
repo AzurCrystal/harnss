@@ -49,7 +49,7 @@ Short paragraph explaining what changed and why users care.
 
 ---
 
-**Full Changelog**: https://github.com/OpenSource03/harnss/compare/v{prev}...v{current}
+**Full Changelog**: https://github.com/AzurCrystal/harnss/compare/v{prev}...v{current}
 ```
 
 ## Rules
@@ -101,7 +101,7 @@ Type `/clear` in the composer and hit Enter to instantly open a fresh chat — w
 
 ---
 
-**Full Changelog**: https://github.com/OpenSource03/harnss/compare/v0.20.0...v0.21.0
+**Full Changelog**: https://github.com/AzurCrystal/harnss/compare/v0.20.0...v0.21.0
 ```
 
 ## Example: Patch Release
@@ -115,5 +115,5 @@ Type `/clear` in the composer and hit Enter to instantly open a fresh chat — w
 
 ---
 
-**Full Changelog**: https://github.com/OpenSource03/harnss/compare/v0.21.0...v0.21.1
+**Full Changelog**: https://github.com/AzurCrystal/harnss/compare/v0.21.0...v0.21.1
 ```

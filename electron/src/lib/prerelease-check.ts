@@ -22,7 +22,7 @@ interface PreReleaseInfo {
   releaseUrl: string | null;
 }
 
-const GITHUB_OWNER = "OpenSource03";
+const GITHUB_OWNER = "AzurCrystal";
 const GITHUB_REPO = "harnss";
 const FETCH_TIMEOUT_MS = 10_000;
 

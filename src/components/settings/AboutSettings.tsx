@@ -106,13 +106,13 @@ export const AboutSettings = memo(function AboutSettings() {
               <AboutLink
                 icon={Github}
                 label="GitHub 仓库"
-                href="https://github.com/OpenSource03/harnss"
+                href="https://github.com/AzurCrystal/harnss"
                 description="源代码、问题与发布"
               />
               <AboutLink
                 icon={Scale}
                 label="MIT 许可证"
-                href="https://github.com/OpenSource03/harnss/blob/main/LICENSE"
+                href="https://github.com/AzurCrystal/harnss/blob/main/LICENSE"
                 description="自由开源软件"
               />
             </div>

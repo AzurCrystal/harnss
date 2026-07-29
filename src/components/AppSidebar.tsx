@@ -674,7 +674,7 @@ export const AppSidebar = memo(function AppSidebar({
             <span>Harnss 仍处于早期测试阶段</span>
             <span className="text-sidebar-foreground/20">·</span>
             <a
-              href="https://github.com/OpenSource03/harnss/issues"
+              href="https://github.com/AzurCrystal/harnss/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground/80"

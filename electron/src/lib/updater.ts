@@ -159,8 +159,8 @@ export function initAutoUpdater(
           reportError("UPDATER_ERR", err, { context: "manual-mac-install" });
           // Last resort: open the GitHub release page for manual download
           const releaseUrl = lastDownloadedVersion
-            ? `https://github.com/OpenSource03/harnss/releases/tag/v${lastDownloadedVersion}`
-            : "https://github.com/OpenSource03/harnss/releases/latest";
+            ? `https://github.com/AzurCrystal/harnss/releases/tag/v${lastDownloadedVersion}`
+            : "https://github.com/AzurCrystal/harnss/releases/latest";
           shell.openExternal(releaseUrl);
           const win = getMainWindow();
           win?.webContents.send("updater:install-error", {

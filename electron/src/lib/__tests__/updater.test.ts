@@ -646,7 +646,7 @@ describe("initAutoUpdater", () => {
       await getHandler("updater:install")();
 
       expect(shell.openExternal).toHaveBeenCalledWith(
-        "https://github.com/OpenSource03/harnss/releases/tag/v0.12.1",
+        "https://github.com/AzurCrystal/harnss/releases/tag/v0.12.1",
       );
       expect(mockWebContents.send).toHaveBeenCalledWith(
         "updater:install-error",
@@ -664,7 +664,7 @@ describe("initAutoUpdater", () => {
       await getHandler("updater:install")();
 
       expect(shell.openExternal).toHaveBeenCalledWith(
-        "https://github.com/OpenSource03/harnss/releases/latest",
+        "https://github.com/AzurCrystal/harnss/releases/latest",
       );
     });
   });
