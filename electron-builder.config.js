@@ -95,15 +95,8 @@ module.exports = {
     "node_modules/@anthropic-ai/claude-agent-sdk/manifest*.json",
   ],
 
-  // OMP binary from our fork (AzurCrystal/oh-my-pi GitHub Releases).
-  // CI downloads the platform-specific binary into build/omp/ before packaging.
-  extraResources: [
-    {
-      from: "build/omp/${os}",
-      to: "omp",
-      filter: ["**/*"],
-    },
-  ],
+  // Harnss ships as a frontend only: the OMP runtime is NOT bundled.
+  // Users install OMP themselves; the app spawns `omp` from PATH at runtime.
 
   npmRebuild: true,
   nodeGypRebuild: false,
@@ -185,7 +178,7 @@ module.exports = {
   // --- Auto-update ---
   publish: {
     provider: "github",
-    owner: "OpenSource03",
+    owner: "AzurCrystal",
     repo: "harnss",
     releaseType: "release",
   },

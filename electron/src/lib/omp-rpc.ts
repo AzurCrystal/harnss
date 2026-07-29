@@ -1,21 +1,3 @@
-import { app } from "electron";
-import * as path from "path";
-import * as fs from "fs";
-
-/**
- * Resolves the OMP binary path. In packaged builds, uses the binary bundled
- * in app resources (downloaded from our fork's GitHub Releases). In
- * development, falls back to `omp` on PATH.
- */
-function resolveOmpBinary(): string {
-  if (app.isPackaged) {
-    const binaryName = process.platform === "win32" ? "omp.exe" : "omp";
-    const bundled = path.join(process.resourcesPath, "omp", binaryName);
-    if (fs.existsSync(bundled)) return bundled;
-  }
-  return "omp";
-}
-
 import { spawn, type ChildProcess } from "child_process";
 import type {
   OmpRpcCommand,
@@ -232,7 +214,8 @@ export class OmpRpcTransport {
       args.push("--no-session");
     }
 
-    const process = spawn(resolveOmpBinary(), args, {
+    // Harnss is a frontend only: OMP is user-installed and resolved from PATH.
+    const process = spawn("omp", args, {
       cwd: options.cwd,
       shell: false,
       stdio: ["pipe", "pipe", "pipe"],
