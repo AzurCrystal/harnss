@@ -406,9 +406,9 @@ export function MermaidDiagram({ code, isStreaming }: MermaidDiagramProps) {
 
   if (error) {
     return (
-      <MermaidCard label="mermaid (error)" code={code}>
+      <MermaidCard label="mermaid（错误）" code={code}>
         <div className="wrap-break-word whitespace-pre-wrap p-3 text-xs text-destructive">
-          Failed to render diagram: {error}
+          无法渲染图表：{error}
         </div>
         <pre className="overflow-x-auto p-3 text-xs font-mono text-muted-foreground border-t border-foreground/[0.06]">
           <code>{code}</code>

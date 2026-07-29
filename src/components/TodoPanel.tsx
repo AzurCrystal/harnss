@@ -17,7 +17,7 @@ export function TodoPanel({ todos }: TodoPanelProps) {
     <div className="flex h-full flex-col">
       <PanelHeader
         icon={ListChecks}
-        label="Tasks"
+        label="任务"
         separator={false}
         iconClass="text-blue-600/70 dark:text-blue-200/50"
       >

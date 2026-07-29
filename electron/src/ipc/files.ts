@@ -287,7 +287,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
     try {
       // Ensure target doesn't already exist
       if (fs.existsSync(newPath)) {
-        return { error: "A file or folder with that name already exists" };
+        return { error: "同名文件或文件夹已存在" };
       }
       await fsPromises.rename(oldPath, newPath);
       return { ok: true };
@@ -310,7 +310,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
   ipcMain.handle("file:new-file", async (_event, filePath: string) => {
     try {
       if (fs.existsSync(filePath)) {
-        return { error: "A file with that name already exists" };
+        return { error: "同名文件已存在" };
       }
       // Ensure parent directory exists
       await fsPromises.mkdir(path.dirname(filePath), { recursive: true });
@@ -325,7 +325,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
   ipcMain.handle("file:new-folder", async (_event, folderPath: string) => {
     try {
       if (fs.existsSync(folderPath)) {
-        return { error: "A folder with that name already exists" };
+        return { error: "同名文件夹已存在" };
       }
       await fsPromises.mkdir(folderPath, { recursive: true });
       return { ok: true };
@@ -416,7 +416,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
                 totalSize += fileStat.size;
                 fileCount++;
               } else if (fileStat.size > 500_000) {
-                warnings.push(`${file} (too large, will be skipped)`);
+                warnings.push(`${file}（文件过大，将跳过）`);
               }
             } catch {
               // Skip files that can't be statted
@@ -448,7 +448,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
       try {
         const absPath = path.resolve(cwd, relPath);
         if (!absPath.startsWith(path.resolve(cwd) + path.sep) && absPath !== path.resolve(cwd)) {
-          results.push({ path: relPath, error: "Path outside project directory" });
+          results.push({ path: relPath, error: "路径位于项目目录之外" });
           continue;
         }
         const stat = await fsPromises.stat(absPath);
@@ -470,7 +470,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
               const fileAbsPath = path.resolve(cwd, file);
               const projectRoot = path.resolve(cwd);
               if (!fileAbsPath.startsWith(projectRoot + path.sep) && fileAbsPath !== projectRoot) {
-                results.push({ path: file, error: "Path outside project directory" });
+                results.push({ path: file, error: "路径位于项目目录之外" });
                 continue;
               }
               try {
@@ -488,7 +488,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
             if (totalContentSize + folderContentSize > MAX_TOTAL_SIZE) {
               results.push({
                 path: relPath,
-                error: `Deep folder content too large: ${Math.round(folderContentSize / 1024)}KB (would exceed ${Math.round(MAX_TOTAL_SIZE / 1024)}KB limit). Try a smaller folder or use regular @mention for tree only.`,
+                error: `深层文件夹内容过大：${Math.round(folderContentSize / 1024)}KB（将超过 ${Math.round(MAX_TOTAL_SIZE / 1024)}KB 限制）。请尝试较小的文件夹，或使用普通 @提及仅包含目录树。`,
               });
               continue;
             }
@@ -506,7 +506,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
                   try {
                     const fileStat = await fsPromises.stat(fileAbsPath);
                     if (fileStat.size > 500_000) {
-                      results.push({ path: file, error: "File too large" });
+                      results.push({ path: file, error: "文件过大" });
                       return;
                     }
                     const content = await fsPromises.readFile(fileAbsPath, "utf-8");
@@ -529,7 +529,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
           }
         } else {
           if (stat.size > 500_000) {
-            results.push({ path: relPath, error: "File too large" });
+            results.push({ path: relPath, error: "文件过大" });
             continue;
           }
           const content = await fsPromises.readFile(absPath, "utf-8");
@@ -548,7 +548,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
       // Resolve to absolute path and validate it's not outside the filesystem root
       const absPath = path.resolve(filePath);
       if (!absPath || absPath === path.sep) {
-        return { error: "Invalid file path" };
+        return { error: "文件路径无效" };
       }
       const content = fs.readFileSync(absPath, "utf-8");
       return { content };

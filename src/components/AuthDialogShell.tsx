@@ -88,7 +88,7 @@ export const AuthDialogShell = memo(function AuthDialogShell({
         {showCancelButton && (
           <DialogFooter className="mt-4">
             <Button variant="ghost" size="sm" onClick={onClose} disabled={loading}>
-              Cancel
+              取消
             </Button>
           </DialogFooter>
         )}

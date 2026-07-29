@@ -18,7 +18,7 @@ export function formatCompactSummary(message: UIMessage): string {
   if (toolName === "ExitPlanMode") {
     const plan = String(input.plan ?? "");
     const titleMatch = plan.match(/^#\s+(.+)$/m);
-    return titleMatch?.[1] ?? "implementation plan";
+    return titleMatch?.[1] ?? "实施计划";
   }
   if (toolName === "EnterPlanMode") return "";
 
@@ -47,7 +47,7 @@ export function formatCompactSummary(message: UIMessage): string {
   if (toolName === "TodoWrite" && input.todos != null) {
     const todos = getTodoItems(input.todos);
     const completed = todos.filter((t) => t.status === "completed").length;
-    return `${completed}/${todos.length} completed`;
+    return `${completed}/${todos.length} 已完成`;
   }
   // Skill — show skill name
   if (toolName === "Skill") {
@@ -67,13 +67,13 @@ export function formatCompactSummary(message: UIMessage): string {
   const patches = getStructuredPatches(result);
   const patchPaths = getDistinctPatchPaths(patches);
   if (input.file_path && patchPaths.length > 1) {
-    return `${patchPaths.length} files`;
+    return `${patchPaths.length} 个文件`;
   }
   if (input.file_path) return String(input.file_path).split("/").pop() ?? "";
   if (filePathFromResult) return filePathFromResult.split("/").pop() ?? filePathFromResult;
   if (input.pattern) {
     const pat = String(input.pattern);
-    const glob = input.glob ? ` in ${String(input.glob)}` : "";
+    const glob = input.glob ? ` 范围 ${String(input.glob)}` : "";
     const suffix = getSearchResultSuffix(result);
     return pat + glob + suffix;
   }
@@ -94,9 +94,9 @@ function getSearchResultSuffix(result: UIMessage["toolResult"]): string {
   const numFiles = "numFiles" in result ? Number(result.numFiles) : 0;
   const numLines = "numLines" in result ? Number(result.numLines) : 0;
   const mode = String(result.mode);
-  if (mode === "files_with_matches" && numFiles > 0) return ` → ${numFiles} file${numFiles !== 1 ? "s" : ""}`;
-  if (mode === "content" && numLines > 0) return ` → ${numLines} line${numLines !== 1 ? "s" : ""}`;
-  if (numFiles === 0 && numLines === 0) return " → no matches";
+  if (mode === "files_with_matches" && numFiles > 0) return ` → ${numFiles} 个文件`;
+  if (mode === "content" && numLines > 0) return ` → ${numLines} 行`;
+  if (numFiles === 0 && numLines === 0) return " → 无匹配";
   return "";
 }
 
@@ -119,33 +119,33 @@ function extractResultFilePath(result: UIMessage["toolResult"]): string | null {
 
 export function formatTaskTitle(message: UIMessage): string {
   const input = message.toolInput;
-  if (!input) return "Task";
+  if (!input) return "任务";
   const desc = String(input.description ?? "");
   const agentType = String(input.subagent_type ?? input.subagentType ?? "");
-  if (agentType && desc) return `${agentType}: ${desc}`;
-  if (desc) return `Task: ${desc}`;
-  return "Task";
+  if (agentType && desc) return `${agentType}：${desc}`;
+  if (desc) return `任务：${desc}`;
+  return "任务";
 }
 
 export function formatTaskRunningTitle(message: UIMessage): string {
   const input = message.toolInput;
-  if (!input) return "Running agent...";
+  if (!input) return "正在运行智能体…";
   const agentType = String(input.subagent_type ?? input.subagentType ?? "");
   const desc = String(input.description ?? "");
-  if (agentType) return `Running ${agentType} agent...`;
-  if (desc) return `Running: ${desc}`;
-  return "Running agent...";
+  if (agentType) return `正在运行 ${agentType} 智能体…`;
+  if (desc) return `正在运行：${desc}`;
+  return "正在运行智能体…";
 }
 
 export function formatTaskSummary(message: UIMessage): string {
   const input = message.toolInput;
-  if (!input) return "task";
+  if (!input) return "任务";
   const agentType = String(input.subagent_type ?? input.subagentType ?? "");
   const desc = String(input.description ?? "");
-  if (agentType && desc) return `${agentType} to ${desc}`;
+  if (agentType && desc) return `${agentType}：${desc}`;
   if (agentType) return agentType;
   if (desc) return desc;
-  return "task";
+  return "任务";
 }
 
 export function formatLatestStep(steps: SubagentToolStep[]): string {
@@ -217,7 +217,7 @@ export function formatBashResult(result: UIMessage["toolResult"]): string {
     parts.push(result.content.filter((c) => c.type === "text").map((c) => c.text).join("\n"));
   }
   if (result.stderr) parts.push(result.stderr);
-  return parts.join("\n") || "(no output)";
+  return parts.join("\n") || "（无输出）";
 }
 
 /** Check if a tool result is the synthetic `{ status: "completed" }` marker
@@ -236,22 +236,22 @@ export function formatResult(result: UIMessage["toolResult"]): string {
 
   if (result.file) {
     const { filePath, numLines, totalLines } = result.file;
-    return `${filePath} (${numLines}/${totalLines} lines)`;
+    return `${filePath}（${numLines}/${totalLines} 行）`;
   }
 
   if (result.stdout !== undefined) {
     const parts: string[] = [];
     if (result.stdout) parts.push(result.stdout);
     if (result.stderr) parts.push(`stderr: ${result.stderr}`);
-    return parts.join("\n") || "(no output)";
+    return parts.join("\n") || "（无输出）";
   }
 
   if (result.filePath && result.newString !== undefined) {
-    return `Edited ${result.filePath}`;
+    return `已编辑 ${result.filePath}`;
   }
 
   if (result.isAsync) {
-    return `Launched agent ${result.agentId ?? ""} (${result.status})`;
+    return `已启动智能体 ${result.agentId ?? ""}（${result.status}）`;
   }
 
   return JSON.stringify(result, null, 2);

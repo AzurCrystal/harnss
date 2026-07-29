@@ -18,6 +18,7 @@ interface PreloadGlobals {
 }
 
 import type { ThemeOption as ThemeSource, MacBackgroundEffect } from "@shared/types/settings";
+import type { OmpExitEvent, OmpRpcCommand, OmpSessionFrame, OmpStartOptions, OmpStderrEvent } from "@shared/types/omp";
 
 function readStoredThemeSource(storage: PreloadStorage | undefined): ThemeSource {
   const stored = storage?.getItem("harnss-theme");
@@ -69,57 +70,28 @@ contextBridge.exposeInMainWorld("claude", {
     setTheme: (theme: string) =>
       ipcRenderer.send("glass:set-theme", theme),
   },
-  start: (options: unknown) => ipcRenderer.invoke("claude:start", options),
-  send: (sessionId: string, message: unknown) => ipcRenderer.invoke("claude:send", { sessionId, message }),
-  stop: (sessionId: string, reason?: string) =>
-    ipcRenderer.invoke("claude:stop", { sessionId, reason }),
-  interrupt: (sessionId: string) => ipcRenderer.invoke("claude:interrupt", sessionId),
-  stopTask: (sessionId: string, taskId: string) =>
-    ipcRenderer.invoke("claude:stop-task", { sessionId, taskId }),
-  readAgentOutput: (outputFile: string) =>
-    ipcRenderer.invoke("claude:read-agent-output", { outputFile }),
-  log: (label: string, data: unknown) => ipcRenderer.send("claude:log", label, data),
-  onEvent: (callback: (data: unknown) => void) => {
-    const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-    ipcRenderer.on("claude:event", listener);
-    return () => ipcRenderer.removeListener("claude:event", listener);
+  omp: {
+    start: (options: OmpStartOptions) => ipcRenderer.invoke("omp:start", options),
+    restart: (sessionId: string) => ipcRenderer.invoke("omp:restart", sessionId),
+    command: (sessionId: string, command: OmpRpcCommand) =>
+      ipcRenderer.invoke("omp:command", sessionId, command),
+    stop: (sessionId: string) => ipcRenderer.invoke("omp:stop", sessionId),
+    onEvent: (callback: (data: OmpSessionFrame) => void) => {
+      const listener = (_event: IpcRendererEvent, data: OmpSessionFrame) => callback(data);
+      ipcRenderer.on("omp:event", listener);
+      return () => ipcRenderer.removeListener("omp:event", listener);
+    },
+    onStderr: (callback: (data: OmpStderrEvent) => void) => {
+      const listener = (_event: IpcRendererEvent, data: OmpStderrEvent) => callback(data);
+      ipcRenderer.on("omp:stderr", listener);
+      return () => ipcRenderer.removeListener("omp:stderr", listener);
+    },
+    onExit: (callback: (data: OmpExitEvent) => void) => {
+      const listener = (_event: IpcRendererEvent, data: OmpExitEvent) => callback(data);
+      ipcRenderer.on("omp:exit", listener);
+      return () => ipcRenderer.removeListener("omp:exit", listener);
+    },
   },
-  onStderr: (callback: (data: unknown) => void) => {
-    const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-    ipcRenderer.on("claude:stderr", listener);
-    return () => ipcRenderer.removeListener("claude:stderr", listener);
-  },
-  onExit: (callback: (data: unknown) => void) => {
-    const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-    ipcRenderer.on("claude:exit", listener);
-    return () => ipcRenderer.removeListener("claude:exit", listener);
-  },
-  onPermissionRequest: (callback: (data: unknown) => void) => {
-    const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-    ipcRenderer.on("claude:permission_request", listener);
-    return () => ipcRenderer.removeListener("claude:permission_request", listener);
-  },
-  respondPermission: (sessionId: string, requestId: string, behavior: string, toolUseId: string, toolInput: unknown, newPermissionMode?: string, updatedPermissions?: unknown[]) =>
-    ipcRenderer.invoke("claude:permission_response", { sessionId, requestId, behavior, toolUseId, toolInput, newPermissionMode, updatedPermissions }),
-  setPermissionMode: (sessionId: string, permissionMode: string) =>
-    ipcRenderer.invoke("claude:set-permission-mode", { sessionId, permissionMode }),
-  setModel: (sessionId: string, model?: string) =>
-    ipcRenderer.invoke("claude:set-model", { sessionId, model }),
-  setThinking: (sessionId: string, thinkingEnabled: boolean) =>
-    ipcRenderer.invoke("claude:set-thinking", { sessionId, thinkingEnabled }),
-  version: () => ipcRenderer.invoke("claude:version"),
-  binaryStatus: () => ipcRenderer.invoke("claude:binary-status"),
-  supportedModels: (sessionId: string) => ipcRenderer.invoke("claude:supported-models", sessionId),
-  slashCommands: (sessionId: string) => ipcRenderer.invoke("claude:slash-commands", sessionId),
-  modelsCacheGet: () => ipcRenderer.invoke("claude:models-cache:get"),
-  modelsCacheRevalidate: (options?: { cwd?: string }) => ipcRenderer.invoke("claude:models-cache:revalidate", options),
-  mcpStatus: (sessionId: string) => ipcRenderer.invoke("claude:mcp-status", sessionId),
-  mcpReconnect: (sessionId: string, serverName: string) =>
-    ipcRenderer.invoke("claude:mcp-reconnect", { sessionId, serverName }),
-  revertFiles: (sessionId: string, checkpointId: string) =>
-    ipcRenderer.invoke("claude:revert-files", { sessionId, checkpointId }),
-  restartSession: (sessionId: string, mcpServers?: unknown[], cwd?: string, effort?: string, model?: string) =>
-    ipcRenderer.invoke("claude:restart-session", { sessionId, mcpServers, cwd, effort, model }),
   readFile: (filePath: string) => ipcRenderer.invoke("file:read", filePath),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke("file:rename", { oldPath, newPath }),
   trashItem: (filePath: string) => ipcRenderer.invoke("file:trash", filePath),
@@ -132,7 +104,7 @@ contextBridge.exposeInMainWorld("claude", {
   openExternal: (url: string) => ipcRenderer.invoke("shell:open-external", url),
   showItemInFolder: (filePath: string) => ipcRenderer.invoke("shell:show-item-in-folder", filePath),
   generateTitle: (message: string, cwd?: string, engine?: string, sessionId?: string) =>
-    ipcRenderer.invoke("claude:generate-title", { message, cwd, engine, sessionId }),
+    ipcRenderer.invoke("omp:generate-title", { message, cwd, engine, sessionId }),
   projects: {
     list: () => ipcRenderer.invoke("projects:list"),
     create: (spaceId?: string) => ipcRenderer.invoke("projects:create", spaceId),
@@ -223,109 +195,10 @@ contextBridge.exposeInMainWorld("claude", {
       return () => ipcRenderer.removeListener("terminal:exit", listener);
     },
   },
-  acp: {
-    log: (label: string, data: unknown) => ipcRenderer.send("acp:log", label, data),
-    start: (options: { agentId: string; cwd: string; mcpServers?: unknown[] }) => ipcRenderer.invoke("acp:start", options),
-    authenticate: (sessionId: string, methodId: string) =>
-      ipcRenderer.invoke("acp:authenticate", { sessionId, methodId }),
-    prompt: (sessionId: string, text: string, images?: unknown[]) =>
-      ipcRenderer.invoke("acp:prompt", { sessionId, text, images }),
-    stop: (sessionId: string) => ipcRenderer.invoke("acp:stop", sessionId),
-    reloadSession: (sessionId: string, mcpServers?: unknown[], cwd?: string) =>
-      ipcRenderer.invoke("acp:reload-session", { sessionId, mcpServers, cwd }),
-    reviveSession: (options: { agentId: string; cwd: string; agentSessionId?: string; mcpServers?: unknown[] }) =>
-      ipcRenderer.invoke("acp:revive-session", options),
-    cancel: (sessionId: string) => ipcRenderer.invoke("acp:cancel", sessionId),
-    abortPendingStart: () => ipcRenderer.invoke("acp:abort-pending-start"),
-    respondPermission: (sessionId: string, requestId: string, optionId: string) =>
-      ipcRenderer.invoke("acp:permission_response", { sessionId, requestId, optionId }),
-    setConfig: (sessionId: string, configId: string, value: string) =>
-      ipcRenderer.invoke("acp:set-config", { sessionId, configId, value }),
-    getConfigOptions: (sessionId: string) =>
-      ipcRenderer.invoke("acp:get-config-options", sessionId),
-    getAvailableCommands: (sessionId: string) =>
-      ipcRenderer.invoke("acp:get-available-commands", sessionId),
-    onEvent: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("acp:event", listener);
-      return () => ipcRenderer.removeListener("acp:event", listener);
-    },
-    onPermissionRequest: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("acp:permission_request", listener);
-      return () => ipcRenderer.removeListener("acp:permission_request", listener);
-    },
-    onTurnComplete: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("acp:turn_complete", listener);
-      return () => ipcRenderer.removeListener("acp:turn_complete", listener);
-    },
-    onExit: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("acp:exit", listener);
-      return () => ipcRenderer.removeListener("acp:exit", listener);
-    },
-  },
-  codex: {
-    log: (label: string, data: unknown) => ipcRenderer.send("codex:log", label, data),
-    start: (options: { cwd: string; model?: string; approvalPolicy?: string; sandbox?: "read-only" | "workspace-write" | "danger-full-access"; personality?: string; collaborationMode?: { mode: string; settings: { model: string; reasoning_effort: string | null; developer_instructions: string | null } } }) =>
-      ipcRenderer.invoke("codex:start", options),
-    send: (sessionId: string, text: string, images?: Array<{ type: "image"; url: string } | { type: "localImage"; path: string }>, effort?: string, collaborationMode?: { mode: string; settings: { model: string; reasoning_effort: string | null; developer_instructions: string | null } }) =>
-      ipcRenderer.invoke("codex:send", { sessionId, text, images, effort, collaborationMode }),
-    stop: (sessionId: string) => ipcRenderer.invoke("codex:stop", sessionId),
-    interrupt: (sessionId: string) => ipcRenderer.invoke("codex:interrupt", sessionId),
-    respondApproval: (sessionId: string, rpcId: string | number, decision: string, acceptSettings?: unknown) =>
-      ipcRenderer.invoke("codex:approval_response", { sessionId, rpcId, decision, acceptSettings }),
-    respondUserInput: (sessionId: string, rpcId: string | number, answers: Record<string, { answers: string[] }>) =>
-      ipcRenderer.invoke("codex:user_input_response", { sessionId, rpcId, answers }),
-    respondServerRequestError: (sessionId: string, rpcId: string | number, code: number, message: string) =>
-      ipcRenderer.invoke("codex:server_request_error", { sessionId, rpcId, code, message }),
-    compact: (sessionId: string) => ipcRenderer.invoke("codex:compact", sessionId),
-    listSkills: (sessionId: string) => ipcRenderer.invoke("codex:list-skills", sessionId),
-    listApps: (sessionId: string) => ipcRenderer.invoke("codex:list-apps", sessionId),
-    listModels: () => ipcRenderer.invoke("codex:list-models"),
-    authStatus: () => ipcRenderer.invoke("codex:auth-status"),
-    login: (sessionId: string, type: "apiKey" | "chatgpt", apiKey?: string) =>
-      ipcRenderer.invoke("codex:login", { sessionId, type, apiKey }),
-    resume: (options: { cwd: string; threadId: string; model?: string; approvalPolicy?: string; sandbox?: "read-only" | "workspace-write" | "danger-full-access" }) =>
-      ipcRenderer.invoke("codex:resume", options),
-    setModel: (sessionId: string, model: string) =>
-      ipcRenderer.invoke("codex:set-model", { sessionId, model }),
-    version: () => ipcRenderer.invoke("codex:version"),
-    binaryStatus: () => ipcRenderer.invoke("codex:binary-status"),
-    onEvent: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("codex:event", listener);
-      return () => ipcRenderer.removeListener("codex:event", listener);
-    },
-    onApprovalRequest: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("codex:approval_request", listener);
-      return () => ipcRenderer.removeListener("codex:approval_request", listener);
-    },
-    onExit: (callback: (data: unknown) => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown) => callback(data);
-      ipcRenderer.on("codex:exit", listener);
-      return () => ipcRenderer.removeListener("codex:exit", listener);
-    },
-  },
   mcp: {
-    list: (projectId: string) => ipcRenderer.invoke("mcp:list", projectId),
-    add: (projectId: string, server: unknown) => ipcRenderer.invoke("mcp:add", { projectId, server }),
-    remove: (projectId: string, name: string) => ipcRenderer.invoke("mcp:remove", { projectId, name }),
-    authenticate: (serverName: string, serverUrl: string) => ipcRenderer.invoke("mcp:authenticate", { serverName, serverUrl }),
-    authStatus: (serverName: string) => ipcRenderer.invoke("mcp:auth-status", serverName),
-    probe: (servers: unknown[]) => ipcRenderer.invoke("mcp:probe", servers),
-  },
-  agents: {
-    list: () => ipcRenderer.invoke("agents:list"),
-    save: (agent: unknown) => ipcRenderer.invoke("agents:save", agent),
-    delete: (id: string) => ipcRenderer.invoke("agents:delete", id),
-    updateCachedConfig: (agentId: string, configOptions: unknown[]) =>
-      ipcRenderer.invoke("agents:update-cached-config", agentId, configOptions),
-    checkBinaries: (agents: Array<{ id: string; binary: Record<string, { cmd: string; args?: string[] }> }>) =>
-      ipcRenderer.invoke("agents:check-binaries", agents),
-    getPlatformKeys: () => ipcRenderer.invoke("agents:get-platform-keys"),
+    list: (cwd: string) => ipcRenderer.invoke("mcp:list", cwd),
+    add: (cwd: string, server: unknown) => ipcRenderer.invoke("mcp:add", cwd, server),
+    remove: (cwd: string, name: string) => ipcRenderer.invoke("mcp:remove", cwd, name),
   },
   settings: {
     get: () => ipcRenderer.invoke("settings:get"),

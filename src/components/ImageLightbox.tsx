@@ -24,13 +24,13 @@ export const ImageLightbox = React.memo(function ImageLightbox({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
-        <DialogTitle className="sr-only">Image preview</DialogTitle>
+        <DialogTitle className="sr-only">图片预览</DialogTitle>
         <DialogDescription className="sr-only">
-          Full-size view of the attached image.
+          查看附件图片的完整尺寸。
         </DialogDescription>
         <img
           src={`data:${image.mediaType};base64,${image.data}`}
-          alt={image.fileName ?? "attached image"}
+          alt={image.fileName ?? "附件图片"}
           className="max-h-[85vh] max-w-[88vw] rounded-lg object-contain"
         />
       </DialogContent>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Bot,
   Loader2,
@@ -37,8 +37,7 @@ const REMARK_PLUGINS = [remarkGfm];
 interface BackgroundAgentsPanelProps {
   agents: BackgroundAgent[];
   expandEditToolCallsByDefault: boolean;
-  onDismiss: (agentId: string) => void;
-  onStopAgent: (agentId: string, taskId: string) => void;
+  onDismiss: (subagentId: string) => void;
 }
 
 const TOOL_ICONS: Record<string, typeof Terminal> = {
@@ -60,15 +59,14 @@ export function BackgroundAgentsPanel({
   agents,
   expandEditToolCallsByDefault,
   onDismiss,
-  onStopAgent,
 }: BackgroundAgentsPanelProps) {
-  const runningCount = agents.filter((a) => a.status === "running" || a.status === "stopping").length;
+  const runningCount = agents.filter((agent) => agent.status === "running").length;
 
   return (
     <div className="flex h-full flex-col">
       <PanelHeader
         icon={Bot}
-        label="Agents"
+        label="智能体"
         iconClass="text-foreground/50"
       >
         {runningCount > 0 && (
@@ -83,11 +81,10 @@ export function BackgroundAgentsPanel({
         <div className="px-1.5 py-1 space-y-px">
           {agents.map((agent) => (
             <AgentCard
-              key={agent.toolUseId}
+              key={agent.subagentId}
               agent={agent}
               expandEditToolCallsByDefault={expandEditToolCallsByDefault}
               onDismiss={onDismiss}
-              onStopAgent={onStopAgent}
             />
           ))}
         </div>
@@ -102,28 +99,17 @@ function AgentCard({
   agent,
   expandEditToolCallsByDefault,
   onDismiss,
-  onStopAgent,
 }: {
   agent: BackgroundAgent;
   expandEditToolCallsByDefault: boolean;
-  onDismiss: (agentId: string) => void;
-  onStopAgent: (agentId: string, taskId: string) => void;
+  onDismiss: (subagentId: string) => void;
 }) {
   const isRunning = agent.status === "running";
-  const isStopping = agent.status === "stopping";
-  const isActive = isRunning || isStopping;
   const isCompleted = agent.status === "completed";
   const isError = agent.status === "error";
   const [expanded, setExpanded] = useState(isRunning);
   const [showTranscript, setShowTranscript] = useState(false);
 
-  const handleStop = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (agent.taskId) onStopAgent(agent.agentId, agent.taskId);
-    },
-    [agent.agentId, agent.taskId, onStopAgent],
-  );
 
   return (
     <>
@@ -140,31 +126,30 @@ function AgentCard({
                 />
                 <StatusDot status={agent.status} />
                 <span className="truncate text-foreground/75 font-medium">
-                  {isStopping && <span className="text-amber-500/60">Stopping… </span>}
                   {agent.description}
                 </span>
               </div>
             </CollapsibleTrigger>
 
-            <div className="flex items-center shrink-0">
-              {isRunning && agent.taskId && (
+              {isRunning && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-4.5 w-4.5 text-foreground/30 hover:text-red-400/80"
-                  onClick={handleStop}
-                  title="Stop agent"
+                  className="h-4.5 w-4.5 text-foreground/20"
+                  disabled
+                  title="暂不支持停止单个 OMP 子智能体"
                 >
                   <Square className="h-2 w-2" />
                 </Button>
               )}
-              {(isCompleted || isError) && agent.outputFile && (
+            <div className="flex items-center shrink-0">
+              {(isCompleted || isError) && (
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-4.5 w-4.5 text-foreground/30 hover:text-foreground/60"
                   onClick={(e) => { e.stopPropagation(); setShowTranscript(true); }}
-                  title="View full transcript"
+                  title="查看完整记录"
                 >
                   <FileSearch className="h-2.5 w-2.5" />
                 </Button>
@@ -174,7 +159,7 @@ function AgentCard({
                   variant="ghost"
                   size="icon"
                   className="h-4.5 w-4.5 text-foreground/30 hover:text-foreground/60"
-                  onClick={(e) => { e.stopPropagation(); onDismiss(agent.agentId); }}
+                  onClick={(event) => { event.stopPropagation(); onDismiss(agent.subagentId); }}
                 >
                   <X className="h-2.5 w-2.5" />
                 </Button>
@@ -183,7 +168,7 @@ function AgentCard({
           </div>
 
           {/* Progress summary */}
-          {isActive && agent.progressSummary && (
+          {isRunning && agent.progressSummary && (
             <div className="px-2 ps-7 pb-1 text-[10px] text-foreground/40 italic truncate">
               {agent.progressSummary}
             </div>
@@ -214,9 +199,11 @@ function AgentCard({
         </div>
       </Collapsible>
 
-      {showTranscript && agent.outputFile && (
+      {showTranscript && (
         <AgentTranscriptViewer
-          outputFile={agent.outputFile}
+          parentSessionId={agent.parentSessionId}
+          subagentId={agent.subagentId}
+          sessionFile={agent.sessionFile}
           agentDescription={agent.description}
           expandEditToolCallsByDefault={expandEditToolCallsByDefault}
           onClose={() => setShowTranscript(false)}
@@ -230,13 +217,11 @@ function AgentCard({
 
 function StatusDot({ status }: { status: BackgroundAgent["status"] }) {
   const colorClass =
-    status === "stopping"
-      ? "bg-amber-400/70"
-      : status === "running"
-        ? "bg-blue-400/60 animate-pulse"
-        : status === "completed"
-          ? "bg-emerald-500/60"
-          : "bg-red-400/60";
+    status === "running"
+      ? "bg-blue-400/60 animate-pulse"
+      : status === "completed"
+        ? "bg-emerald-500/60"
+        : "bg-red-400/60";
 
   return <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${colorClass}`} />;
 }
@@ -399,7 +384,7 @@ function AgentResult({ result, isError }: { result: string; isError?: boolean })
           className="mt-0.5 text-[9px] text-foreground/40 hover:text-foreground/60 transition-colors cursor-pointer"
           onClick={(e) => { e.stopPropagation(); setResultExpanded((v) => !v); }}
         >
-          {resultExpanded ? "less" : "more"}
+          {resultExpanded ? "收起" : "展开"}
         </button>
       )}
     </div>

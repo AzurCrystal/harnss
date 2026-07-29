@@ -1,4 +1,4 @@
-/** Unified slash command representation — normalized from each engine's native format. */
+/** Unified slash command representation for OMP and local UI commands. */
 export interface SlashCommand {
   /** The command string without leading slash (e.g., "compact", "help"). */
   name: string;
@@ -6,24 +6,24 @@ export interface SlashCommand {
   description: string;
   /** Placeholder hint for arguments (e.g., "<query>"), shown grayed after the command name. */
   argumentHint?: string;
-  /** Engine-specific source type — used for execution routing. */
-  source: "claude" | "acp" | "codex-skill" | "codex-app" | "local";
-  /** For Codex skills: auto-fill text after the prefix. */
+  /** Command origin used for execution routing. */
+  source: "omp" | "local";
+  /** Optional text inserted after the command name. */
   defaultPrompt?: string;
-  /** For Codex apps: the app slug for $app-slug prefix. */
+  /** Optional command-name override for command-specific syntax. */
   appSlug?: string;
-  /** Icon URL for the autocomplete popup (Codex skills/apps may have icons). */
+  /** Optional icon URL for the autocomplete popup. */
   iconUrl?: string;
 }
 
-/** All supported engine identifiers. */
-export type EngineId = "claude" | "acp" | "codex";
+/** The only supported runtime identifier. */
+export type EngineId = "omp";
 
 /**
  * Permission response behaviors.
  * - "allow": accept the tool call once
  * - "deny": reject the tool call
- * - "allowForSession": accept and allow similar calls for the rest of the session (Codex only)
+ * - "allowForSession": accept and allow similar calls for the rest of the session
  */
 export type AppPermissionBehavior = "allow" | "deny" | "allowForSession";
 

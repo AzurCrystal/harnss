@@ -9,12 +9,10 @@ interface UseBackgroundAgentsOptions {
 }
 
 /**
- * Subscribes to the BackgroundAgentStore for the active session.
+ * Subscribes to OMP subagents owned by the active Harnss session.
  *
- * Background agents are tracked via SDK task lifecycle events
- * (task_started → task_progress → task_notification) that flow
- * through useClaude / BackgroundSessionStore into bgAgentStore.
- * No file polling — all progress is event-driven.
+ * The store receives the official subagent registry snapshot and subscribed
+ * lifecycle, progress, and event frames from mounted and inactive OMP sessions.
  */
 export function useBackgroundAgents({ sessionId }: UseBackgroundAgentsOptions) {
   // Keep sessionId in a ref so the subscribe/getSnapshot closures
@@ -33,23 +31,14 @@ export function useBackgroundAgents({ sessionId }: UseBackgroundAgentsOptions) {
   );
 
   const dismissAgent = useCallback(
-    (agentId: string) => {
-      if (sessionIdRef.current) bgAgentStore.dismissAgent(sessionIdRef.current, agentId);
+    (subagentId: string) => {
+      if (sessionIdRef.current) bgAgentStore.dismissAgent(sessionIdRef.current, subagentId);
     },
     [],
   );
 
-  const stopAgent = useCallback(
-    async (agentId: string, taskId: string) => {
-      const sid = sessionIdRef.current;
-      if (!sid) return;
-      bgAgentStore.setAgentStopping(sid, agentId);
-      await window.claude.stopTask(sid, taskId);
-    },
-    [],
-  );
 
-  return { agents, dismissAgent, stopAgent };
+  return { agents, dismissAgent };
 }
 
 // Module-level stable subscribe function — avoids re-subscription on every render.

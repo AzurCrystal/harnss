@@ -218,7 +218,7 @@ export function register(): void {
 
             const raw = await fs.promises.readFile(filePath, "utf-8");
             const data = JSON.parse(raw);
-            const sessionTitle = data.title || "Untitled";
+            const sessionTitle = data.title || "未命名对话";
             const sessionId = data.id;
 
             if (sessionTitle.toLowerCase().includes(lowerQuery)) {

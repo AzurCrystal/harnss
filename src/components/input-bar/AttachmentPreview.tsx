@@ -37,7 +37,7 @@ export const AttachmentPreview = memo(function AttachmentPreview({
             >
               <img
                 src={`data:${att.mediaType};base64,${att.data}`}
-                alt={att.fileName ?? "attachment"}
+                alt={att.fileName ?? "附件"}
                 className="h-full w-full object-cover transition-transform duration-200 group-hover/att:scale-105"
               />
               {/* Edit overlay icon -- bottom-right, visible on hover */}

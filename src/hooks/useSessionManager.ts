@@ -1,16 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { ChatSession, UIMessage, PermissionRequest, McpServerStatus, McpServerConfig, ModelInfo, AcpPermissionBehavior, EngineId, Project, ACPAuthenticateResult, ACPConfigOption, ACPPermissionEvent } from "@/types";
-import { toMcpStatusState } from "../lib/mcp-utils";
+import type { ChatSession, UIMessage, PermissionRequest, ModelInfo, Project, SlashCommand } from "@/types";
+import type { OmpModel } from "@/lib/engine/omp-adapter";
+import type { OmpThinkingLevel } from "@shared/types/omp";
 import { toChatSession } from "../lib/session/records";
 import { BackgroundSessionStore } from "../lib/background/session-store";
-import { createSystemMessage } from "../lib/message-factory";
-import { suppressNextSessionCompletion } from "../lib/notification-utils";
 import {
   DRAFT_ID,
   type StartOptions,
-  type CodexModelSummary,
   type InitialMeta,
-  type PendingAcpDraftPrompt,
   type QueuedMessage,
   type SessionPaneBootstrap,
   type SharedSessionRefs,
@@ -26,7 +23,7 @@ import { useSessionLifecycle } from "./session/useSessionLifecycle";
 
 export function useSessionManager(
   projects: Project[],
-  acpPermissionBehavior: AcpPermissionBehavior = "ask",
+  _legacyPermissionBehavior?: string,
   onSpaceChange?: (spaceId: string) => void,
   /** Session IDs currently visible in extra split panes. */
   visibleSplitSessionIds: readonly string[] = [],
@@ -35,27 +32,32 @@ export function useSessionManager(
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
-  const [startOptions, setStartOptions] = useState<StartOptions>({});
+  const [startOptions, setStartOptions] = useState<StartOptions>({ engine: "omp" });
   const [draftProjectId, setDraftProjectId] = useState<string | null>(null);
+  const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
   const [initialMeta, setInitialMeta] = useState<InitialMeta | null>(null);
-  const [initialConfigOptions, setInitialConfigOptions] = useState<ACPConfigOption[]>([]);
-  const [initialSlashCommands, setInitialSlashCommands] = useState<import("@/types").SlashCommand[]>([]);
   const [initialPermission, setInitialPermission] = useState<PermissionRequest | null>(null);
-  const [initialRawAcpPermission, setInitialRawAcpPermission] = useState<ACPPermissionEvent | null>(null);
-  const [acpMcpStatuses, setAcpMcpStatuses] = useState<McpServerStatus[]>([]);
-  const [acpConfigOptionsLoading, setAcpConfigOptionsLoading] = useState(false);
-  const [preStartedSessionId, setPreStartedSessionId] = useState<string | null>(null);
-  const [draftAcpSessionId, setDraftAcpSessionId] = useState<string | null>(null);
-  const [draftMcpStatuses, setDraftMcpStatuses] = useState<McpServerStatus[]>([]);
-  const [cachedModels, setCachedModels] = useState<ModelInfo[]>([]);
-  const [codexRawModels, setCodexRawModels] = useState<CodexModelSummary[]>([]);
-  const [codexModelsLoadingMessage, setCodexModelsLoadingMessage] = useState<string | null>(null);
+  const [initialSupportedModels, setInitialSupportedModels] = useState<ModelInfo[]>([]);
+  const [initialOmpModels, setInitialOmpModels] = useState<OmpModel[]>([]);
+  const [initialThinkingLevels, setInitialThinkingLevels] = useState<OmpThinkingLevel[]>([]);
+  const [initialThinkingLevel, setInitialThinkingLevel] = useState<OmpThinkingLevel | undefined>(undefined);
+  const [initialSlashCommands, setInitialSlashCommands] = useState<SlashCommand[]>([]);
   const [queuedCount, setQueuedCount] = useState(0);
 
-  // ── Refs needed by extra pane loaders (declared early) ──
   const sessionsRef = useRef(sessions);
   sessionsRef.current = sessions;
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
   const backgroundStoreRef = useRef(new BackgroundSessionStore());
+
+  const findProject = useCallback((projectId: string) => (
+    projectsRef.current.find((project) => project.id === projectId) ?? null
+  ), []);
+
+  const getProjectCwd = useCallback((project: Project) => {
+    const selected = localStorage.getItem(`harnss-${project.id}-git-cwd`)?.trim();
+    return selected || project.path;
+  }, []);
 
   useEffect(() => {
     if (visibleSplitSessionIds.length === 0) return;
@@ -71,49 +73,29 @@ export function useSessionManager(
     });
   }, [visibleSplitSessionIds]);
 
-  // ── Determine active engine ──
-  const activeEngine: EngineId = activeSessionId === DRAFT_ID
-    ? (startOptions.engine ?? "claude")
-    : (sessions.find(s => s.id === activeSessionId)?.engine ?? "claude");
-  const isACP = activeEngine === "acp";
-  const isCodex = activeEngine === "codex";
+  const activeProjectId = activeSessionId === DRAFT_ID
+    ? draftProjectId
+    : sessions.find((session) => session.id === activeSessionId)?.projectId;
+  const activeProject = activeProjectId ? findProject(activeProjectId) : null;
+  const activeCwd = activeProject ? getProjectCwd(activeProject) : undefined;
 
-  const claudeSessionId = (activeEngine === "claude" && activeSessionId !== DRAFT_ID) ? activeSessionId : null;
-  const acpSessionId = activeEngine === "acp"
-    ? (activeSessionId !== DRAFT_ID ? activeSessionId : draftAcpSessionId)
-    : null;
-  const codexSessionId = (activeEngine === "codex" && activeSessionId !== DRAFT_ID) ? activeSessionId : null;
-  const codexSessionModel = (activeEngine === "codex" && activeSessionId !== DRAFT_ID)
-    ? (sessions.find((s) => s.id === activeSessionId)?.model ?? startOptions.model)
-    : undefined;
-  const codexPlanModeEnabled = activeEngine === "codex"
-    ? (activeSessionId === DRAFT_ID
-      ? !!startOptions.planMode
-      : !!sessions.find((s) => s.id === activeSessionId)?.planMode)
-    : false;
-
-  // ── Primary session pane (wraps all three engine hooks) ──
+  // ── Primary OMP session pane ──
   const primaryPane = useSessionPane({
     activeSessionId,
-    activeEngine,
-    claudeSessionId,
-    acpSessionId,
-    codexSessionId,
-    codexSessionModel,
-    codexPlanModeEnabled,
+    cwd: activeCwd,
     initialMessages,
     initialMeta,
     initialPermission,
-    initialConfigOptions,
+    initialSupportedModels,
+    initialOmpModels,
+    initialThinkingLevels,
+    initialThinkingLevel,
     initialSlashCommands,
-    initialRawAcpPermission,
-    acpPermissionBehavior,
   });
-
-  const { claude, acp, codex, engine } = primaryPane;
+  const { omp, engine } = primaryPane;
   const { messages, totalCost, contextUsage } = primaryPane;
 
-  // ── All refs (21+) — kept for stale-closure avoidance ──
+  // ── Shared refs ──
   const liveSessionIdsRef = useRef<Set<string>>(new Set());
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -123,87 +105,39 @@ export function useSessionManager(
   contextUsageRef.current = contextUsage;
   const activeSessionIdRef = useRef(activeSessionId);
   activeSessionIdRef.current = activeSessionId;
-  // sessionsRef declared above (near extra pane loaders)
-  const projectsRef = useRef(projects);
-  projectsRef.current = projects;
   const draftProjectIdRef = useRef(draftProjectId);
   draftProjectIdRef.current = draftProjectId;
+  const draftSessionIdRef = useRef(draftSessionId);
+  draftSessionIdRef.current = draftSessionId;
   const startOptionsRef = useRef(startOptions);
   startOptionsRef.current = startOptions;
   const isProcessingRef = useRef(engine.isProcessing);
   isProcessingRef.current = engine.isProcessing;
-  const isCompactingRef = useRef("isCompacting" in engine ? !!engine.isCompacting : false);
-  isCompactingRef.current = "isCompacting" in engine ? !!engine.isCompacting : false;
+  const isCompactingRef = useRef(engine.isCompacting);
+  isCompactingRef.current = engine.isCompacting;
   const isConnectedRef = useRef(engine.isConnected);
   isConnectedRef.current = engine.isConnected;
   const sessionInfoRef = useRef(engine.sessionInfo);
   sessionInfoRef.current = engine.sessionInfo;
   const pendingPermissionRef = useRef(engine.pendingPermission);
   pendingPermissionRef.current = engine.pendingPermission;
-  // Split view: track visible split-pane session IDs for IPC routing gate
   const visibleSplitSessionIdsRef = useRef<readonly string[]>(visibleSplitSessionIds);
   visibleSplitSessionIdsRef.current = visibleSplitSessionIds;
-  // Prevent cross-session bleed: skip the first lastMessageAt sync after switching chats.
   const lastMessageSyncSessionRef = useRef<string | null>(null);
-  const preStartedSessionIdRef = useRef<string | null>(null);
-  preStartedSessionIdRef.current = preStartedSessionId;  // kept in sync with state for event routing
-  const draftAcpSessionIdRef = useRef<string | null>(null);
-  draftAcpSessionIdRef.current = draftAcpSessionId;
-  const draftMcpStatusesRef = useRef<McpServerStatus[]>([]);
-  draftMcpStatusesRef.current = draftMcpStatuses;
   const materializingRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageQueueRef = useRef<Map<string, QueuedMessage[]>>(new Map());
-  const pendingAcpDraftPromptRef = useRef<PendingAcpDraftPrompt | null>(null);
-  const acpAgentIdRef = useRef<string | null>(null);
-  const acpAgentSessionIdRef = useRef<string | null>(null);
-  const codexRawModelsRef = useRef(codexRawModels);
-  codexRawModelsRef.current = codexRawModels;
-  const codexEffortRef = useRef(codex.codexEffort);
-  codexEffortRef.current = codex.codexEffort;
-  // Tracks whether current Codex effort was explicitly chosen by the user.
-  const codexEffortManualOverrideRef = useRef(false);
-  const acpPermissionBehaviorRef = useRef<AcpPermissionBehavior>(acpPermissionBehavior);
-  acpPermissionBehaviorRef.current = acpPermissionBehavior;
   const currentBranchRef = useRef<string | undefined>(undefined);
-  // Stable ref to switchSession so toast callbacks don't capture stale closures
   const switchSessionRef = useRef<((id: string) => Promise<void>) | undefined>(undefined);
-  // Stable ref for space switching — avoids adding onSpaceChange as a useCallback dependency
   const onSpaceChangeRef = useRef(onSpaceChange);
   onSpaceChangeRef.current = onSpaceChange;
-  // backgroundStoreRef declared above (near extra pane loaders)
 
-  // ── Codex effort helpers (kept in orchestrator — too small to extract) ──
-  const setCodexEffortFromUser = useCallback((effort: string) => {
-    codexEffortManualOverrideRef.current = true;
-    codex.setCodexEffort(effort);
-  }, [codex.setCodexEffort]);
-  const applyCodexModelDefaultEffort = useCallback((effort: string | undefined) => {
-    if (!effort || codexEffortManualOverrideRef.current) return;
-    codex.setCodexEffort(effort);
-  }, [codex.setCodexEffort]);
-  const resetCodexEffortToModelDefault = useCallback((effort: string | undefined) => {
-    if (!effort) return;
-    codexEffortManualOverrideRef.current = false;
-    codex.setCodexEffort(effort);
-  }, [codex.setCodexEffort]);
-
-  // ── Utility callbacks ──
-  const findProject = useCallback((projectId: string) => {
-    return projectsRef.current.find((p) => p.id === projectId) ?? null;
-  }, []);
-
-  const getProjectCwd = useCallback((project: Project) => {
-    const selected = localStorage.getItem(`harnss-${project.id}-git-cwd`)?.trim();
-    return selected || project.path;
-  }, []);
-
-  // ── Build shared refs/setters/engines objects for sub-hooks ──
   const refs: SharedSessionRefs = {
     activeSessionIdRef,
     sessionsRef,
     projectsRef,
     draftProjectIdRef,
+    draftSessionIdRef,
     startOptionsRef,
     messagesRef,
     totalCostRef,
@@ -215,22 +149,12 @@ export function useSessionManager(
     pendingPermissionRef,
     liveSessionIdsRef,
     backgroundStoreRef,
-    preStartedSessionIdRef,
-    draftAcpSessionIdRef,
-    draftMcpStatusesRef,
     materializingRef,
     saveTimerRef,
     messageQueueRef,
-    pendingAcpDraftPromptRef,
-    acpAgentIdRef,
-    acpAgentSessionIdRef,
-    codexRawModelsRef,
-    codexEffortRef,
-    codexEffortManualOverrideRef,
     lastMessageSyncSessionRef,
     switchSessionRef,
     onSpaceChangeRef,
-    acpPermissionBehaviorRef,
     currentBranchRef,
     visibleSplitSessionIdsRef,
   };
@@ -240,31 +164,20 @@ export function useSessionManager(
     setActiveSessionId,
     setInitialMessages,
     setInitialMeta,
-    setInitialConfigOptions,
-    setInitialSlashCommands,
     setInitialPermission,
-    setInitialRawAcpPermission,
+    setInitialSupportedModels,
+    setInitialOmpModels,
+    setInitialThinkingLevels,
+    setInitialThinkingLevel,
+    setInitialSlashCommands,
     setStartOptions,
     setDraftProjectId,
-    setPreStartedSessionId,
-    setDraftAcpSessionId,
-    setAcpConfigOptionsLoading,
-    setDraftMcpStatuses,
-    setAcpMcpStatuses,
+    setDraftSessionId,
     setQueuedCount,
-    setCachedModels,
-    setCodexRawModels,
-    setCodexModelsLoadingMessage,
   };
 
-  const engines: EngineHooks = {
-    claude,
-    acp,
-    codex,
-    engine,
-  };
+  const engines: EngineHooks = { omp, engine };
 
-  // ── Compose sub-hooks ──
   const {
     enqueueMessage,
     clearQueue,
@@ -282,26 +195,15 @@ export function useSessionManager(
     continueQueuedBackgroundSession,
   });
 
-  const {
-    eagerStartSession,
-    eagerStartAcpSession,
-    prefetchCodexModels,
-    probeMcpServers,
-    abandonEagerSession,
-    abandonDraftAcpSession,
-    materializeDraft,
-  } =
-    useDraftMaterialization({
-      refs,
-      setters,
-      engines,
-      findProject,
-      getProjectCwd,
-      generateSessionTitle,
-      applyCodexModelDefaultEffort,
-    });
+  const { materializeDraft, abandonDraftSession } = useDraftMaterialization({
+    refs,
+    setters,
+    findProject,
+    getProjectCwd,
+    generateSessionTitle,
+  });
 
-  const { reviveSession, reviveAcpSession, reviveCodexSession } = useSessionRevival({
+  const { reviveSession } = useSessionRevival({
     refs,
     setters,
     engines,
@@ -316,7 +218,6 @@ export function useSessionManager(
     renameSession,
     deselectSession,
     importCCSession,
-    setDraftAgent,
     setActiveModel,
     setSessionModel,
     setActivePermissionMode,
@@ -324,12 +225,6 @@ export function useSessionManager(
     setActivePlanMode,
     setSessionPlanMode,
     setActiveThinking,
-    setActiveClaudeEffort,
-    setActiveClaudeModelAndEffort,
-    setSessionClaudeModelAndEffort,
-    restartAcpSession,
-    restartActiveSessionInCurrentWorktree,
-    fullRevertSession,
     send,
   } = useSessionLifecycle({
     refs,
@@ -337,48 +232,32 @@ export function useSessionManager(
     engines,
     projects,
     activeSessionId,
-    activeEngine,
     findProject,
     getProjectCwd,
     saveCurrentSession,
     seedBackgroundStore,
-    eagerStartSession,
-    eagerStartAcpSession,
-    prefetchCodexModels,
-    probeMcpServers,
-    abandonEagerSession,
-    abandonDraftAcpSession,
+    abandonDraftSession,
     materializeDraft,
     reviveSession,
-    reviveAcpSession,
-    reviveCodexSession,
     enqueueMessage,
     clearQueue,
-    resetCodexEffortToModelDefault,
   });
 
   const seedDevExampleConversation = useCallback(async () => {
     if (!import.meta.env.DEV) return;
     const { buildDevExampleConversation } = await import("../lib/dev-seeding/chat-seed");
-    const base = Date.now();
-    const seeded = buildDevExampleConversation(base);
+    const seeded = buildDevExampleConversation(Date.now());
     engine.setMessages((prev) => [...prev, ...seeded.messages]);
     const activeId = activeSessionIdRef.current;
     if (activeId && activeId !== DRAFT_ID) {
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === activeId
-            ? { ...s, lastMessageAt: seeded.lastMessageAt }
-            : s,
-        ),
-      );
+      setSessions((prev) => prev.map((session) => (
+        session.id === activeId ? { ...session, lastMessageAt: seeded.lastMessageAt } : session
+      )));
     }
   }, [engine, setSessions]);
 
   const refreshSessions = useCallback(async (projectIds?: string[]) => {
-    const ids = (projectIds && projectIds.length > 0)
-      ? projectIds
-      : projectsRef.current.map((p) => p.id);
+    const ids = projectIds?.length ? projectIds : projectsRef.current.map((project) => project.id);
     if (ids.length === 0) return;
     const uniqueIds = [...new Set(ids)];
     const lists = await Promise.all(uniqueIds.map((projectId) => window.claude.sessions.list(projectId)));
@@ -386,12 +265,12 @@ export function useSessionManager(
       toChatSession(session, session.id === activeSessionIdRef.current),
     );
     setSessions((prev) => {
-      const keep = prev.filter((s) => !uniqueIds.includes(s.projectId));
+      const keep = prev.filter((session) => !uniqueIds.includes(session.projectId));
       const existingById = new Map(prev.map((session) => [session.id, session]));
-      const map = new Map<string, ChatSession>();
+      const sessionsById = new Map<string, ChatSession>();
       [...keep, ...refreshed].forEach((session) => {
         const existing = existingById.get(session.id);
-        map.set(session.id, existing
+        sessionsById.set(session.id, existing
           ? {
               ...session,
               isProcessing: existing.isProcessing,
@@ -401,109 +280,17 @@ export function useSessionManager(
             }
           : session);
       });
-      return Array.from(map.values()).sort((a, b) => (b.lastMessageAt ?? b.createdAt) - (a.lastMessageAt ?? a.createdAt));
+      return Array.from(sessionsById.values()).sort(
+        (left, right) => (right.lastMessageAt ?? right.createdAt) - (left.lastMessageAt ?? left.createdAt),
+      );
     });
   }, [setSessions]);
 
-  // ── Derived state ──
-  const isDraft = activeSessionId === DRAFT_ID;
-  const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null;
-
-  const setCurrentBranch = useCallback((branch: string | undefined) => {
-    currentBranchRef.current = branch;
-  }, []);
-
-  const completeAcpAuth = useCallback(async (result: ACPAuthenticateResult) => {
-    if (!acpSessionId) return;
-    const pendingPrompt = pendingAcpDraftPromptRef.current;
-    acpAgentSessionIdRef.current = result.agentSessionId ?? acpAgentSessionIdRef.current;
-    if (result.configOptions) {
-      setInitialConfigOptions(result.configOptions);
-      acp.setConfigOptions(result.configOptions);
-    }
-    if (result.mcpStatuses?.length) {
-      const normalizedStatuses = result.mcpStatuses.map((status) => ({
-        name: status.name,
-        status: toMcpStatusState(status.status),
-      }));
-      setDraftMcpStatuses(normalizedStatuses);
-      setAcpMcpStatuses(normalizedStatuses);
-    }
-
-    if (activeSessionIdRef.current === DRAFT_ID && draftProjectIdRef.current) {
-      const project = findProject(draftProjectIdRef.current);
-      if (project) {
-        liveSessionIdsRef.current.add(acpSessionId);
-        const now = Date.now();
-        const currentBranch = currentBranchRef.current;
-        setSessions((prev) => [
-          {
-            id: acpSessionId,
-            projectId: project.id,
-            title: "New Chat",
-            createdAt: now,
-            lastMessageAt: now,
-            totalCost: 0,
-            planMode: !!startOptionsRef.current.planMode,
-            isActive: true,
-            titleGenerating: true,
-            engine: "acp" as const,
-            agentId: startOptionsRef.current.agentId,
-            agentSessionId: acpAgentSessionIdRef.current ?? undefined,
-            ...(currentBranch ? { branch: currentBranch } : {}),
-          },
-          ...prev.filter((s) => s.id !== DRAFT_ID).map((s) => ({ ...s, isActive: false })),
-        ]);
-        setActiveSessionId(acpSessionId);
-        setDraftProjectId(null);
-        setDraftAcpSessionId(null);
-        setAcpMcpStatuses(draftMcpStatusesRef.current.length > 0 ? draftMcpStatusesRef.current : []);
-        if (pendingPrompt) {
-          generateSessionTitle(acpSessionId, pendingPrompt.text, getProjectCwd(project), "acp");
-        }
-      }
-    }
-
-    acp.clearAuthRequired();
-
-    if (!pendingPrompt) return;
-    pendingAcpDraftPromptRef.current = null;
-    acp.setIsProcessing(true);
-    const promptResult = await window.claude.acp.prompt(acpSessionId, pendingPrompt.text, pendingPrompt.images);
-    if (promptResult?.error) {
-      acp.setMessages((prev) => [
-        ...prev,
-        createSystemMessage(`ACP prompt error: ${promptResult.error}`, true),
-      ]);
-      acp.setIsProcessing(false);
-    }
-  }, [acp, acpSessionId, findProject, generateSessionTitle, getProjectCwd, setAcpMcpStatuses, setDraftAcpSessionId, setDraftMcpStatuses, setDraftProjectId, setInitialConfigOptions, setSessions]);
-
-  const cancelAcpAuth = useCallback(async () => {
-    pendingAcpDraftPromptRef.current = null;
-    acp.clearAuthRequired();
-    acp.setIsProcessing(false);
-    if (activeSessionIdRef.current === DRAFT_ID) {
-      acp.setMessages([]);
-      abandonDraftAcpSession("auth_cancel");
-      setSessions((prev) => prev.filter((s) => s.id !== DRAFT_ID).map((s) => ({ ...s, isActive: false })));
-      setInitialMessages([]);
-      setInitialMeta(null);
-      setActiveSessionId(null);
-      setDraftProjectId(null);
-      return;
-    }
-    if (acpSessionId) {
-      suppressNextSessionCompletion(acpSessionId);
-      await window.claude.acp.stop(acpSessionId);
-    }
-  }, [abandonDraftAcpSession, acp, acpSessionId, setActiveSessionId, setDraftProjectId, setInitialMessages, setInitialMeta, setSessions]);
-
   const loadSplitPaneBootstrap = useCallback(async (sessionId: string): Promise<SessionPaneBootstrap | null> => {
     const session = sessionsRef.current.find((entry) => entry.id === sessionId);
-    if (!session) {
-      return null;
-    }
+    if (!session) return null;
+    const project = findProject(session.projectId);
+    const cwd = project ? getProjectCwd(project) : undefined;
 
     const backgroundState = backgroundStoreRef.current.get(sessionId);
     if (backgroundState) {
@@ -519,35 +306,39 @@ export function useSessionManager(
           isCompacting: backgroundState.isCompacting,
         },
         initialPermission: backgroundState.pendingPermission,
-        initialConfigOptions: [],
-        initialSlashCommands: backgroundState.slashCommands ?? [],
-        initialRawAcpPermission: backgroundState.rawAcpPermission,
+        initialSupportedModels: backgroundState.supportedModels,
+        initialOmpModels: backgroundState.ompModels,
+        initialThinkingLevels: backgroundState.thinkingLevels,
+        initialThinkingLevel: backgroundState.thinkingLevel,
+        initialSlashCommands: backgroundState.slashCommands,
+        cwd,
       };
     }
 
-    const persistedSession = await window.claude.sessions.load(session.projectId, sessionId);
-    if (!persistedSession) {
-      return null;
-    }
-
+    const persisted = await window.claude.sessions.load(session.projectId, sessionId);
+    if (!persisted) return null;
     return {
       session,
-      initialMessages: persistedSession.messages ?? [],
+      initialMessages: persisted.messages ?? [],
       initialMeta: {
         isProcessing: false,
         isConnected: false,
         sessionInfo: null,
-        totalCost: persistedSession.totalCost ?? 0,
-        contextUsage: persistedSession.contextUsage ?? null,
+        totalCost: persisted.totalCost ?? 0,
+        contextUsage: persisted.contextUsage ?? null,
       },
       initialPermission: null,
-      initialConfigOptions: [],
-      initialSlashCommands: [],
-      initialRawAcpPermission: null,
+      cwd,
     };
+  }, [findProject, getProjectCwd]);
+
+  const isDraft = activeSessionId === DRAFT_ID;
+  const activeSession = sessions.find((session) => session.id === activeSessionId) ?? null;
+
+  const setCurrentBranch = useCallback((branch: string | undefined) => {
+    currentBranchRef.current = branch;
   }, []);
 
-  // ── Return ──
   return {
     primaryPane,
     sessions,
@@ -570,11 +361,6 @@ export function useSessionManager(
     setActivePlanMode,
     setSessionPlanMode,
     setActiveThinking,
-    setActiveClaudeEffort,
-    setActiveClaudeModelAndEffort,
-    setSessionClaudeModelAndEffort,
-    restartActiveSessionInCurrentWorktree,
-    setDraftAgent,
     messages: engine.messages,
     isProcessing: engine.isProcessing,
     isConnected: engine.isConnected || isDraft,
@@ -590,143 +376,63 @@ export function useSessionManager(
     queuedCount,
     stop: engine.stop,
     interrupt: async () => {
-      // Clear queued messages before interrupting
       clearQueue();
-      // During ACP startup (DRAFT + processing), abort the pending start process
-      if (activeSessionIdRef.current === DRAFT_ID
-          && startOptionsRef.current.engine === "acp"
-          && isProcessingRef.current) {
-        if (draftAcpSessionIdRef.current && liveSessionIdsRef.current.has(draftAcpSessionIdRef.current)) {
-          await window.claude.acp.cancel(draftAcpSessionIdRef.current);
-        } else {
-          await window.claude.acp.abortPendingStart();
-        }
-        acp.setIsProcessing(false);
-        return;
-      }
       await engine.interrupt();
     },
     pendingPermission: engine.pendingPermission,
     respondPermission: engine.respondPermission,
     contextUsage: engine.contextUsage,
-    isCompacting: "isCompacting" in engine ? !!engine.isCompacting : false,
+    isCompacting: engine.isCompacting,
     compact: engine.compact,
-    slashCommands: isCodex
-      ? codex.slashCommands
-      : isACP
-        ? acp.slashCommands
-        : claude.slashCommands,
-    acpConfigOptions: acp.configOptions,
-    acpConfigOptionsLoading,
-    setACPConfig: acp.setConfig,
-    mcpServerStatuses: isACP || isCodex
-      ? (acpMcpStatuses.length > 0 ? acpMcpStatuses : draftMcpStatuses)
-      : (claude.mcpServerStatuses.length > 0 ? claude.mcpServerStatuses : draftMcpStatuses),
-    mcpStatusPreliminary: isDraft && draftMcpStatuses.length > 0 && (
-      isACP || isCodex ? acpMcpStatuses.length === 0 : claude.mcpServerStatuses.length === 0
-    ),
-    refreshMcpStatus: isACP || isCodex
-      ? (() => Promise.resolve())
-      : (preStartedSessionId && isDraft)
-        ? (async () => {
-            const result = await window.claude.mcpStatus(preStartedSessionId);
-            if (result.servers?.length) {
-              setDraftMcpStatuses(result.servers.map(s => ({
-                name: s.name,
-                status: toMcpStatusState(s.status),
-              })));
-            }
-          })
-        : claude.refreshMcpStatus,
-    reconnectMcpServer: isACP
-      ? isDraft
-        ? async (_name: string) => {
-            // ACP draft: restart the hidden draft session so fresh auth is applied
-            if (draftProjectIdRef.current) {
-              abandonDraftAcpSession("mcp_reconnect");
-              await probeMcpServers(draftProjectIdRef.current);
-              await eagerStartAcpSession(draftProjectIdRef.current, startOptionsRef.current);
-            }
-          }
-        : async (_name: string) => {
-            // ACP live: restart session so fresh auth tokens are applied
-            const currentId = activeSessionIdRef.current;
-            const session = sessionsRef.current.find(s => s.id === currentId);
-            if (!session) return;
-            const servers = await window.claude.mcp.list(session.projectId);
-            await restartAcpSession(servers);
-          }
-      : isCodex
-        ? async (_name: string) => { /* Codex MCP reconnect: not yet implemented */ }
-      : (preStartedSessionId && isDraft)
-        ? (async (name: string) => {
-            const result = await window.claude.mcpReconnect(preStartedSessionId, name);
-            if (result?.restarted) {
-              await new Promise(r => setTimeout(r, 3000));
-            }
-            const statusResult = await window.claude.mcpStatus(preStartedSessionId);
-            if (statusResult.servers?.length) {
-              setDraftMcpStatuses(statusResult.servers.map(s => ({
-                name: s.name,
-                status: toMcpStatusState(s.status),
-              })));
-            }
-          })
-        : claude.reconnectMcpServer,
-    supportedModels: isCodex
-      ? codex.codexModels
-      : isACP
-        ? []
-        : claude.supportedModels.length > 0 ? claude.supportedModels : cachedModels,
-    cachedClaudeModels: cachedModels,
-    restartWithMcpServers: isACP
-      ? isDraft
-        ? async (servers: McpServerConfig[]) => {
-            // ACP draft: restart the hidden session with the updated MCP server list
-            if (draftProjectIdRef.current) {
-              await probeMcpServers(draftProjectIdRef.current, servers);
-              abandonDraftAcpSession("mcp_restart");
-              await eagerStartAcpSession(draftProjectIdRef.current, startOptionsRef.current, servers);
-            }
-          }
-        : async (servers: McpServerConfig[]) => {
-            // ACP live: stop + restart session with updated MCP servers
-            await restartAcpSession(servers);
-          }
-      : isCodex
-        ? async (_servers: McpServerConfig[]) => { /* Codex MCP restart: not yet implemented */ }
-      : (preStartedSessionId && isDraft)
-        ? async (_servers: McpServerConfig[]) => {
-            // Claude eager draft: stop old eager session and start fresh
-            abandonEagerSession("mcp_restart");
-            setDraftMcpStatuses(_servers.map(s => ({
-              name: s.name,
-              status: "pending" as const,
-            })));
-            if (draftProjectIdRef.current) {
-              eagerStartSession(draftProjectIdRef.current, startOptionsRef.current);
-            }
-          }
-        : claude.restartWithMcpServers,
-    // File revert: only supported by Claude SDK engine
-    revertFiles: activeEngine === "claude" ? claude.revertFiles : undefined,
-    fullRevert: activeEngine === "claude" ? fullRevertSession : undefined,
-    // Codex reasoning effort
-    codexEffort: codex.codexEffort,
-    setCodexEffort: setCodexEffortFromUser,
-    codexAuthRequired: isCodex ? codex.authRequired : false,
-    clearCodexAuthRequired: () => codex.setAuthRequired(false),
-    acpAuthRequired: isACP ? acp.authRequired : false,
-    acpAuthMethods: isACP ? acp.authMethods : [],
-    acpAuthSessionId: acpSessionId,
-    acpAuthAgentId: isACP
-      ? (activeSessionId === DRAFT_ID ? startOptions.agentId ?? null : activeSession?.agentId ?? null)
-      : null,
-    completeAcpAuth,
-    cancelAcpAuth,
-    codexRawModels,
-    codexModelsLoadingMessage,
-    // Codex plan steps (from turn/plan/updated events — separate from Claude's TodoWrite tool)
-    codexTodoItems: codex.todoItems,
+    slashCommands: engine.slashCommands,
+    supportedModels: engine.supportedModels,
+    thinkingLevels: engine.thinkingLevels,
+    thinkingLevel: engine.thinkingLevel,
+    setThinkingLevel: engine.setThinkingLevel,
+    // PR-aligned state
+    isRetrying: engine.isRetrying,
+    isBashRunning: engine.isBashRunning,
+    isAborting: engine.isAborting,
+    isGeneratingHandoff: engine.isGeneratingHandoff,
+    steeringMode: engine.steeringMode,
+    followUpMode: engine.followUpMode,
+    interruptMode: engine.interruptMode,
+    autoCompactionEnabled: engine.autoCompactionEnabled,
+    queuedMessageCount: engine.queuedMessageCount,
+    // Work mode state and actions
+    workMode: engine.workMode,
+    planMode: engine.planMode,
+    goalMode: engine.goalMode,
+    vibeMode: engine.vibeMode,
+    loopState: engine.loopState,
+    enterPlanMode: engine.enterPlanMode,
+    exitPlanMode: engine.exitPlanMode,
+    pausePlanMode: engine.pausePlanMode,
+    resumePlanMode: engine.resumePlanMode,
+    submitPlanReview: engine.submitPlanReview,
+    approvePlanProposal: engine.approvePlanProposal,
+    rejectPlanProposal: engine.rejectPlanProposal,
+    createGoal: engine.createGoal,
+    pauseGoal: engine.pauseGoal,
+    resumeGoal: engine.resumeGoal,
+    switchGoal: engine.switchGoal,
+    clearGoal: engine.clearGoal,
+    setGoalBudget: engine.setGoalBudget,
+    beginGuidedGoal: engine.beginGuidedGoal,
+    enterVibeMode: engine.enterVibeMode,
+    exitVibeMode: engine.exitVibeMode,
+    enableLoop: engine.enableLoop,
+    disableLoop: engine.disableLoop,
+    refreshWorkModeState: engine.refreshWorkModeState,
+    // Runtime control
+    pauseAgents: engine.pauseAgents,
+    resumeAgents: engine.resumeAgents,
+    // Session / queue
+    retry: engine.retry,
+    newSession: engine.newSession,
+    abortAndPrompt: engine.abortAndPrompt,
+    getQueuedMessages: engine.getQueuedMessages,
+    popQueuedMessage: engine.popQueuedMessage,
+    clearQueue: engine.clearQueue,
   };
 }

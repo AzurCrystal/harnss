@@ -29,7 +29,7 @@ const VARIANT_START_PAGE: UrlBarVariant = {
     "flex items-center gap-2 rounded-md border border-foreground/[0.08] bg-foreground/[0.03] px-2.5 py-1.5 transition-colors focus-within:border-foreground/[0.15] focus-within:bg-foreground/[0.05]",
   input:
     "w-full bg-transparent text-[12px] text-foreground/80 outline-none placeholder:text-foreground/25",
-  placeholder: "Search or enter URL\u2026",
+  placeholder: "搜索或输入网址\u2026",
   dropdown:
     "absolute inset-x-0 top-[calc(100%+4px)] z-20 max-h-48 overflow-y-auto rounded-lg border border-foreground/[0.1] bg-[var(--background)] shadow-lg",
   iconSize: "h-3.5 w-3.5",
@@ -40,7 +40,7 @@ const VARIANT_NAV_BAR: UrlBarVariant = {
     "flex items-center gap-1.5 rounded-md bg-foreground/[0.05] px-2 py-1 transition-colors focus-within:bg-foreground/[0.08] focus-within:ring-1 focus-within:ring-foreground/[0.08]",
   input:
     "min-w-0 flex-1 bg-transparent text-[11px] text-foreground/70 outline-none placeholder:text-foreground/20",
-  placeholder: "Search or enter URL",
+  placeholder: "搜索或输入网址",
   dropdown:
     "absolute inset-x-0 top-[calc(100%+4px)] z-20 max-h-52 overflow-y-auto rounded-md border border-foreground/[0.08] bg-background py-1 shadow-lg",
   iconSize: "h-3 w-3",

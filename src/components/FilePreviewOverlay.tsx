@@ -90,7 +90,7 @@ const OverlayContent = memo(function OverlayContent({
       .catch((err) => {
         if (cancelled) return;
         captureException(err instanceof Error ? err : new Error(String(err)), { label: "FILE_READ_ERR" });
-        setError(err instanceof Error ? err.message : "Failed to read file");
+        setError(err instanceof Error ? err.message : "读取文件失败");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -206,7 +206,7 @@ const OverlayContent = memo(function OverlayContent({
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" sideOffset={4}>
-                  <p className="text-xs">Open in editor</p>
+                  <p className="text-xs">在编辑器中打开</p>
                 </TooltipContent>
               </Tooltip>
               <button
@@ -282,7 +282,7 @@ const OverlayContent = memo(function OverlayContent({
           {content !== null && !loading && (
             <div className="flex items-center gap-3 border-t border-foreground/[0.08] px-4 py-1.5">
               <span className="text-[11px] text-muted-foreground/50">
-                {lineCount} {lineCount === 1 ? "line" : "lines"}
+                {lineCount} 行
               </span>
               <span className="text-[11px] text-muted-foreground/30">•</span>
               <span className="text-[11px] text-muted-foreground/50">{language}</span>

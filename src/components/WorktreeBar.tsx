@@ -132,12 +132,12 @@ export const WorktreeBar = memo(function WorktreeBar({
       // Show setup errors if any commands failed (worktree was still created)
       const failedSetup = result.setupResults?.filter((s) => !s.ok);
       if (failedSetup && failedSetup.length > 0) {
-        setError(`Worktree created, but setup had errors:\n${failedSetup.map((s) => `• ${s.command}: ${s.error}`).join("\n")}`);
+        setError(`工作树已创建，但初始化脚本执行出错：\n${failedSetup.map((s) => `• ${s.command}: ${s.error}`).join("\n")}`);
       } else {
         setError(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create worktree");
+      setError(err instanceof Error ? err.message : "创建工作树失败");
     } finally {
       setIsCreating(false);
     }
@@ -167,7 +167,7 @@ export const WorktreeBar = memo(function WorktreeBar({
 
       refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove worktree");
+      setError(err instanceof Error ? err.message : "移除工作树失败");
     } finally {
       setRemovingPath(null);
     }
@@ -223,7 +223,7 @@ export const WorktreeBar = memo(function WorktreeBar({
                           handleRemove(wt.path);
                         }}
                         className="absolute -end-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-background/90 text-muted-foreground/60 opacity-0 shadow-sm transition-opacity hover:bg-background hover:text-destructive group-hover/wt:opacity-100"
-                        title="Remove worktree"
+                        title="移除工作树"
                       >
                         <X className="h-2.5 w-2.5" />
                       </button>
@@ -239,7 +239,7 @@ export const WorktreeBar = memo(function WorktreeBar({
                   className="inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed border-border/30 px-2.5 py-1 text-xs font-medium text-foreground/35 transition-colors duration-150 hover:border-border/50 hover:bg-foreground/[0.04] hover:text-foreground/55"
                 >
                   <Plus className="h-3 w-3" />
-                  <span>Worktree</span>
+                  <span>工作树</span>
                 </button>
               )}
             </div>
@@ -268,7 +268,7 @@ export const WorktreeBar = memo(function WorktreeBar({
                         setError(null);
                       }
                     }}
-                    placeholder="Branch name for new worktree"
+                    placeholder="新工作树的分支名称"
                     className="min-w-0 flex-1 bg-transparent text-xs text-foreground/75 outline-none placeholder:text-foreground/25"
                     disabled={isCreating}
                   />
@@ -312,7 +312,7 @@ export const WorktreeBar = memo(function WorktreeBar({
             {hasSetupFile === false && (
               <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-foreground/[0.03] px-3 py-2.5">
                 <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-foreground/45">
-                  Set up a worktree initialization script to auto-install dependencies and copy environment files.
+                  设置工作树初始化脚本，以自动安装依赖并复制环境文件。
                 </p>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <Button
@@ -322,7 +322,7 @@ export const WorktreeBar = memo(function WorktreeBar({
                     onClick={handleOpenSetupFile}
                   >
                     <Settings className="h-3 w-3" />
-                    Settings
+                    设置
                   </Button>
                   <Button
                     size="xs"
@@ -331,7 +331,7 @@ export const WorktreeBar = memo(function WorktreeBar({
                     disabled={!onSend}
                   >
                     <Sparkles className="h-3 w-3" />
-                    Generate with AI
+                    使用 AI 生成
                   </Button>
                 </div>
               </div>

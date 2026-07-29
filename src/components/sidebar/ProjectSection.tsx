@@ -36,7 +36,7 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { IconPicker } from "@/components/IconPicker";
-import type { ChatFolder, ChatSession, InstalledAgent, Project, Space } from "@/types";
+import type { ChatFolder, ChatSession, Project, Space } from "@/types";
 import { SessionItem } from "./SessionItem";
 import { CCSessionList } from "./CCSessionList";
 import { PinnedSection } from "./PinnedSection";
@@ -75,7 +75,6 @@ export function ProjectSection({
   onProjectDragEnd,
   dropIndicator,
   isDraggingProject,
-  agents,
 }: {
   islandLayout: boolean;
   project: Project;
@@ -100,7 +99,6 @@ export function ProjectSection({
   onProjectDragEnd: () => void;
   dropIndicator: ProjectDropIndicator;
   isDraggingProject: boolean;
-  agents?: InstalledAgent[];
 }) {
   const {
     selectSession,
@@ -191,7 +189,6 @@ export function ProjectSection({
           onPinFolder={(pinned) => pinFolder(project.id, folder.id, pinned)}
           onRenameFolder={(name) => renameFolder(project.id, folder.id, name)}
           onDeleteFolder={() => deleteFolder(project.id, folder.id)}
-          agents={agents}
         />
       );
     }
@@ -205,7 +202,6 @@ export function ProjectSection({
           activeSessionId={activeSessionId}
           islandLayout={islandLayout}
           allFolders={folders}
-          agents={agents}
         />
       );
     }
@@ -224,7 +220,6 @@ export function ProjectSection({
           onPinToggle={() => pinSession(session.id, !session.pinned)}
           folders={folders}
           onMoveToFolder={(folderId) => moveSessionToFolder(session.id, folderId)}
-          agents={agents}
           onOpenInSplitView={openInSplitView ? () => openInSplitView(session.id) : undefined}
           canOpenInSplitView={canOpenSessionInSplitView?.(session.id) ?? true}
         />
@@ -304,7 +299,7 @@ export function ProjectSection({
                     : "text-sidebar-foreground/50 hover:bg-black/5 hover:text-sidebar-foreground dark:hover:bg-white/10"
                 }`}
                 onClick={onToggleJiraBoard}
-                title="Open Jira board"
+                title="打开 Jira 看板"
               >
                 <KanbanSquare className="h-4 w-4" />
               </Button>
@@ -362,19 +357,19 @@ export function ProjectSection({
             >
               <DropdownMenuItem onClick={onCreateFolder}>
                 <FolderPlus className="me-2 h-3.5 w-3.5" />
-                New folder
+                新建文件夹
               </DropdownMenuItem>
               <DropdownMenuCheckboxItem
                 checked={organizeByChatBranch}
                 onCheckedChange={onSetOrganizeByChatBranch}
               >
                 <GitBranch className="me-2 h-3.5 w-3.5" />
-                Organize by branch
+                按分支整理
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={startEditing}>
                 <Pencil className="me-2 h-3.5 w-3.5" />
-                Rename
+                重命名
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={(e) => {
@@ -385,19 +380,19 @@ export function ProjectSection({
                 }}
               >
                 <Smile className="me-2 h-3.5 w-3.5" />
-                Set icon
+                设置图标
               </DropdownMenuItem>
               {project.icon && (
                 <DropdownMenuItem onClick={() => onUpdateIcon(null, null)}>
                   <X className="me-2 h-3.5 w-3.5" />
-                  Remove icon
+                  移除图标
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <History className="me-2 h-3.5 w-3.5" />
-                  Resume CC Chat
+                  恢复 Claude Code 会话
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="max-h-80 w-72 overflow-y-auto">
                   <CCSessionList projectPath={project.path} onSelect={onImportCCSession} />
@@ -407,7 +402,7 @@ export function ProjectSection({
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <ArrowRightLeft className="me-2 h-3.5 w-3.5" />
-                    Move to space
+                    移动到空间
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="w-44">
                     {otherSpaces.map((s) => {
@@ -432,7 +427,7 @@ export function ProjectSection({
                 onClick={onDeleteProject}
               >
                 <Trash2 className="me-2 h-3.5 w-3.5" />
-                Delete
+                删除
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -449,7 +444,6 @@ export function ProjectSection({
               activeSessionId={activeSessionId}
               islandLayout={islandLayout}
               folders={folders}
-              agents={agents}
             />
           )}
 
@@ -464,9 +458,9 @@ export function ProjectSection({
             >
               <ChevronDown className="h-3 w-3 shrink-0 transition-transform group-hover/more:translate-y-0.5" />
               <span>
-                Show more
+                显示更多
                 <span className="ms-1 text-sidebar-foreground/35">
-                  ({Math.min(20, remainingCount)} of {remainingCount})
+                  （本次 {Math.min(20, remainingCount)} 条，共剩余 {remainingCount} 条）
                 </span>
               </span>
             </button>
@@ -474,7 +468,7 @@ export function ProjectSection({
 
           {sessions.length === 0 && (
             <p className="px-3 py-2 text-[13px] font-medium text-sidebar-foreground/40">
-              No conversations yet
+              暂无对话
             </p>
           )}
         </div>

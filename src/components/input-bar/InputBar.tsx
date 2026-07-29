@@ -25,14 +25,10 @@ import type {
   ImageAttachment,
   GrabbedElement,
   ContextUsage,
-  InstalledAgent,
-  ACPConfigOption,
   ModelInfo,
-  AcpPermissionBehavior,
-  ClaudeEffort,
-  EngineId,
   SlashCommand,
 } from "@/types";
+import type { OmpThinkingLevel } from "@shared/types/omp";
 import { BOTTOM_CHAT_MAX_WIDTH_CLASS } from "@/lib/layout/constants";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { resolveModelValue } from "@/lib/model-utils";
@@ -47,6 +43,7 @@ import {
   extractEditableContent,
   getAvailableSlashCommands,
   isClearCommandText,
+  getComposerKeyAction,
 } from "./input-bar-utils";
 import { ContextGauge } from "./ContextGauge";
 import { AttachmentPreview } from "./AttachmentPreview";
@@ -63,54 +60,28 @@ export interface InputBarProps {
   onStop: () => void;
   isProcessing: boolean;
   model: string;
-  claudeEffort: ClaudeEffort;
   planMode: boolean;
   permissionMode: string;
   onModelChange: (model: string) => void;
-  onClaudeModelEffortChange: (model: string, effort: ClaudeEffort) => void;
+  /** OMP thinking levels advertised by the active runtime. */
+  thinkingLevels?: OmpThinkingLevel[];
+  thinkingLevel?: OmpThinkingLevel;
+  onThinkingLevelChange?: (level: OmpThinkingLevel) => void;
   onPlanModeChange: (enabled: boolean) => void;
   onPermissionModeChange: (mode: string) => void;
   projectPath?: string;
   contextUsage?: ContextUsage | null;
   isCompacting?: boolean;
   onCompact?: () => void;
-  agents?: InstalledAgent[];
-  selectedAgent?: InstalledAgent | null;
-  onAgentChange?: (agent: InstalledAgent | null) => void;
   /** Slash commands available for the current engine session */
   slashCommands?: SlashCommand[];
-  acpConfigOptions?: ACPConfigOption[];
-  acpConfigOptionsLoading?: boolean;
-  onACPConfigChange?: (configId: string, value: string) => void;
-  acpPermissionBehavior?: AcpPermissionBehavior;
-  onAcpPermissionBehaviorChange?: (behavior: AcpPermissionBehavior) => void;
   supportedModels?: ModelInfo[];
-  codexModelsLoadingMessage?: string | null;
-  /** Codex reasoning effort -- per-model configurable effort level */
-  codexEffort?: string;
-  onCodexEffortChange?: (effort: string) => void;
-  /** Codex models carry their supported effort levels -- passed through for the effort dropdown */
-  codexModelData?: Array<{
-    id: string;
-    supportedReasoningEfforts: Array<{
-      reasoningEffort: string;
-      description: string;
-    }>;
-    defaultReasoningEffort: string;
-    isDefault?: boolean;
-  }>;
-  /** Non-null when session is active (not draft) -- engine is locked and cross-engine agents show "Opens new chat" */
-  lockedEngine?: EngineId | null;
-  /** Non-null when an ACP session is active -- switching to a different ACP agent opens new chat */
-  lockedAgentId?: string | null;
   /** Number of messages currently queued for sending */
   queuedCount?: number;
   /** Grabbed elements from browser inspector, displayed as context cards */
   grabbedElements?: GrabbedElement[];
   /** Remove a grabbed element by ID */
   onRemoveGrabbedElement?: (id: string) => void;
-  /** Open ACP Agents settings */
-  onManageACPs?: () => void;
 }
 
 export const InputBar = memo(function InputBar({
@@ -119,37 +90,23 @@ export const InputBar = memo(function InputBar({
   onStop,
   isProcessing,
   model,
-  claudeEffort,
   planMode,
   permissionMode,
   onModelChange,
-  onClaudeModelEffortChange,
+  thinkingLevels,
+  thinkingLevel,
+  onThinkingLevelChange,
   onPlanModeChange,
   onPermissionModeChange,
   projectPath,
   contextUsage,
   isCompacting,
   onCompact,
-  agents,
-  selectedAgent,
-  onAgentChange,
   slashCommands,
-  acpConfigOptions,
-  acpConfigOptionsLoading,
-  onACPConfigChange,
-  acpPermissionBehavior,
-  onAcpPermissionBehaviorChange,
   supportedModels,
-  codexModelsLoadingMessage,
-  codexEffort,
-  onCodexEffortChange,
-  codexModelData,
-  lockedEngine,
-  lockedAgentId,
   queuedCount = 0,
   grabbedElements,
   onRemoveGrabbedElement,
-  onManageACPs,
 }: InputBarProps) {
   // ── Core state ──
   const [hasContent, setHasContent] = useState(false);
@@ -177,11 +134,6 @@ export const InputBar = memo(function InputBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasContentRef = useRef(false);
 
-  // ── Derived engine state ──
-  const isACPAgent = selectedAgent != null && selectedAgent.engine === "acp";
-  const isCodexAgent = selectedAgent != null && selectedAgent.engine === "codex";
-  const showACPConfigOptions = isACPAgent && (acpConfigOptions?.length ?? 0) > 0;
-  const isAwaitingAcpOptions = isACPAgent && !!acpConfigOptionsLoading;
 
   const availableSlashCommands = useMemo(
     () => getAvailableSlashCommands(slashCommands),
@@ -197,9 +149,7 @@ export const InputBar = memo(function InputBar({
       }))
     : [];
   const modelsLoading = modelList.length === 0;
-  const modelsLoadingText = isCodexAgent
-    ? (codexModelsLoadingMessage?.trim() || "Loading Codex models...")
-    : "Loading models...";
+  const modelsLoadingText = "正在加载 OMP 模型…";
   const resolvedModelId = resolveModelValue(model, supportedModels ?? []);
   const preferredModelId = resolvedModelId ?? model;
   const selectedModel = modelList.find((m) => m.id === preferredModelId) ?? (
@@ -209,28 +159,6 @@ export const InputBar = memo(function InputBar({
   );
   const selectedModelId = selectedModel?.id ?? preferredModelId;
 
-  // Claude effort
-  const claudeCurrentModel = supportedModels?.find((m) => m.value === selectedModelId);
-  const claudeEffortOptions = claudeCurrentModel?.supportsEffort
-    ? (claudeCurrentModel.supportedEffortLevels ?? [])
-    : [];
-  const claudeActiveEffort = claudeEffortOptions.includes(claudeEffort)
-    ? claudeEffort
-    : (claudeEffortOptions.includes("high") ? "high" : (claudeEffortOptions[0] ?? "high"));
-
-  // Codex effort
-  const codexCurrentModel = codexModelData?.find((m) => m.id === selectedModelId)
-    ?? codexModelData?.find((m) => m.isDefault)
-    ?? codexModelData?.[0];
-  const supportedModelCodexEfforts = supportedModels
-    ?.find((m) => m.value === selectedModelId)
-    ?.supportedEffortLevels
-    ?.map((effort) => ({ reasoningEffort: effort, description: "" }))
-    ?? [];
-  const codexEffortOptions = codexCurrentModel?.supportedReasoningEfforts ?? supportedModelCodexEfforts;
-  const codexActiveEffort = codexEffortOptions.some((opt) => opt.reasoningEffort === codexEffort)
-    ? codexEffort
-    : codexCurrentModel?.defaultReasoningEffort ?? codexEffort ?? "medium";
 
   // ── Mention & command autocomplete ──
 
@@ -394,7 +322,6 @@ export const InputBar = memo(function InputBar({
     const trimmed = fullText.trim();
     const hasGrabs = (grabbedElements?.length ?? 0) > 0;
     if (
-      isAwaitingAcpOptions ||
       (!trimmed && attachments.length === 0 && !hasGrabs) ||
       isSending
     )
@@ -439,7 +366,6 @@ export const InputBar = memo(function InputBar({
     await performSend(el, fullText, mentionPaths, deepMentionPaths, hasGrabs);
   }, [
     attachments,
-    isAwaitingAcpOptions,
     isSending,
     projectPath,
     onClear,
@@ -460,6 +386,14 @@ export const InputBar = memo(function InputBar({
   // ── Keyboard handling ──
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const keyAction = getComposerKeyAction(
+      e.key,
+      e.shiftKey,
+      e.nativeEvent.isComposing,
+      e.nativeEvent.keyCode,
+    );
+    if (keyAction === "ignore") return;
+
     // Slash command picker keyboard navigation
     if (command.showCommands && command.cmdResults.length > 0) {
       if (e.key === "ArrowDown") {
@@ -541,18 +475,19 @@ export const InputBar = memo(function InputBar({
       }
     }
 
-    if (e.key === "Enter" && e.shiftKey) {
+    if (keyAction === "line-break") {
       e.preventDefault();
       document.execCommand("insertLineBreak");
       return;
     }
 
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (keyAction === "send") {
       e.preventDefault();
-      if (!isSending && !isAwaitingAcpOptions) {
+      if (!isSending) {
         handleSend();
       }
     }
+
   };
 
   // ── Input detection (@ mentions, / commands, content changes) ──
@@ -692,23 +627,20 @@ export const InputBar = memo(function InputBar({
   // ── Placeholder text ──
 
   const placeholderText = isCompacting
-    ? "Compacting context..."
-    : isAwaitingAcpOptions
-      ? "Loading agent options..."
-      : isProcessing
-        ? `${selectedAgent?.name ?? "Claude"} is responding... (messages will be queued)`
-        : availableSlashCommands.length > 0
-          ? "Ask anything, @ to tag files, / for commands"
-          : "Ask anything, @ to tag files";
+    ? "正在压缩上下文…"
+    : isProcessing
+      ? "OMP 正在回复…（消息将排队发送）"
+      : availableSlashCommands.length > 0
+        ? "输入任何问题，@ 引用文件，/ 使用命令"
+        : "输入任何问题，@ 引用文件";
 
   // ── Send button disabled state ──
 
   const sendDisabled =
-    isAwaitingAcpOptions ||
-    ((!hasContent &&
+    (!hasContent &&
       attachments.length === 0 &&
       (!grabbedElements || grabbedElements.length === 0)) ||
-      isSending);
+    isSending;
 
   return (
     <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
@@ -782,18 +714,13 @@ export const InputBar = memo(function InputBar({
             onInput={handleEditableInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className={`min-h-[24px] max-h-[200px] overflow-y-auto text-[14.5px] leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
-              isAwaitingAcpOptions
-                ? "cursor-wait text-muted-foreground/60"
-                : "text-foreground"
-            }`}
+            className="min-h-[24px] max-h-[200px] overflow-y-auto text-[14.5px] leading-relaxed text-foreground outline-none whitespace-pre-wrap wrap-break-word"
             role="textbox"
             aria-multiline="true"
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="off"
             data-gramm="false"
-            aria-disabled={isAwaitingAcpOptions}
             suppressContentEditableWarning
           />
         </div>
@@ -832,7 +759,7 @@ export const InputBar = memo(function InputBar({
               size="xs"
               className={TOOLBAR_BTN}
               onClick={() => fileInputRef.current?.click()}
-              title="Attach image"
+              title="添加图片"
             >
               <Paperclip className="size-3.5" />
             </Button>
@@ -869,12 +796,12 @@ export const InputBar = memo(function InputBar({
                   {speech.error
                     ? speech.error
                     : speech.isModelLoading
-                      ? `Loading speech model... ${speech.loadProgress.toFixed(0)}%`
+                      ? `正在加载语音模型… ${speech.loadProgress.toFixed(0)}%`
                       : speech.isTranscribing
-                        ? "Transcribing..."
+                        ? "正在转写…"
                         : speech.isListening
-                          ? "Stop dictation"
-                          : "Voice dictation"}
+                          ? "停止听写"
+                          : "语音听写"}
                 </TooltipContent>
               </Tooltip>
             ) : speech.nativeHint ? (
@@ -900,30 +827,15 @@ export const InputBar = memo(function InputBar({
             {/* Engine picker */}
             <EnginePickerDropdown
               isProcessing={isProcessing}
-              isACPAgent={isACPAgent}
-              isCodexAgent={isCodexAgent}
-              selectedAgent={selectedAgent ?? null}
-              agents={agents ?? []}
-              onAgentChange={onAgentChange ?? (() => {})}
               selectedModelId={selectedModelId}
               selectedModelLabel={selectedModel?.label ?? ""}
               modelList={modelList}
               modelsLoading={modelsLoading}
               modelsLoadingText={modelsLoadingText}
               onModelChange={onModelChange}
-              claudeEffortOptions={claudeEffortOptions}
-              claudeActiveEffort={claudeActiveEffort as ClaudeEffort}
-              onClaudeModelEffortChange={onClaudeModelEffortChange}
-              codexEffortOptions={codexEffortOptions}
-              codexActiveEffort={codexActiveEffort ?? "medium"}
-              onCodexEffortChange={onCodexEffortChange}
-              showACPConfigOptions={showACPConfigOptions}
-              acpConfigOptions={acpConfigOptions}
-              acpConfigOptionsLoading={acpConfigOptionsLoading}
-              onACPConfigChange={onACPConfigChange}
-              lockedEngine={lockedEngine}
-              lockedAgentId={lockedAgentId}
-              onManageACPs={onManageACPs}
+              thinkingLevels={thinkingLevels}
+              thinkingLevel={thinkingLevel}
+              onThinkingLevelChange={onThinkingLevelChange}
             />
 
             <span
@@ -932,15 +844,11 @@ export const InputBar = memo(function InputBar({
             />
 
             <EngineControls
-              isCodexAgent={isCodexAgent}
-              isACPAgent={isACPAgent}
               isProcessing={isProcessing}
               permissionMode={permissionMode}
               onPermissionModeChange={onPermissionModeChange}
               planMode={planMode}
               onPlanModeChange={onPlanModeChange}
-              acpPermissionBehavior={acpPermissionBehavior}
-              onAcpPermissionBehaviorChange={onAcpPermissionBehaviorChange}
             />
           </div>
 
@@ -988,33 +896,32 @@ export const InputBar = memo(function InputBar({
         open={showDeepFolderConfirm}
         onOpenChange={setShowDeepFolderConfirm}
         onConfirm={handleDeepFolderConfirm}
-        title="Large Context Warning"
-        confirmLabel="Send Anyway"
-        cancelLabel="Cancel"
+        title="上下文过大警告"
+        confirmLabel="仍然发送"
+        cancelLabel="取消"
         confirmVariant="default"
         description={
           deepFolderInfo && (
             <div className="space-y-2 text-sm">
               <p>
-                This deep folder includes{" "}
-                <strong>{deepFolderInfo.fileCount} files</strong> totaling{" "}
+                此深层文件夹包含{" "}
+                <strong>{deepFolderInfo.fileCount} 个文件</strong>，共{" "}
                 <strong>
                   {Math.round(deepFolderInfo.totalSize / 1024)}KB
                 </strong>{" "}
-                (~
+                （约{" "}
                 <strong>
-                  {deepFolderInfo.estimatedTokens.toLocaleString()} tokens
+                  {deepFolderInfo.estimatedTokens.toLocaleString()} 个令牌
                 </strong>
-                ).
+                ）。
               </p>
               <p className="text-muted-foreground">
-                Sending this much content will consume a significant portion
-                of the context window and may impact response quality.
+                发送如此大量的内容将占用上下文窗口的很大一部分，可能影响回复质量。
               </p>
               {deepFolderInfo.warnings.length > 0 && (
                 <div className="mt-2 text-xs text-muted-foreground">
                   <p className="font-medium">
-                    Note: Some files will be skipped:
+                    注意：部分文件将被跳过：
                   </p>
                   <ul className="ms-4 list-disc">
                     {deepFolderInfo.warnings.slice(0, 3).map((warning, i) => (
@@ -1022,7 +929,7 @@ export const InputBar = memo(function InputBar({
                     ))}
                     {deepFolderInfo.warnings.length > 3 && (
                       <li>
-                        ... and {deepFolderInfo.warnings.length - 3} more
+                        ……还有 {deepFolderInfo.warnings.length - 3} 个
                       </li>
                     )}
                   </ul>

@@ -19,9 +19,9 @@ import { ToolIslandContent } from "@/components/workspace/ToolIslandContent";
 import { SplitChatPane } from "@/components/split/SplitChatPane";
 import { SplitPaneHost } from "@/components/split/SplitPaneHost";
 import type { ToolId } from "@/types/tools";
-import type { ChatSession, InstalledAgent, Project, TodoItem, BackgroundAgent } from "@/types";
+import type { ChatSession, Project, TodoItem, BackgroundAgent } from "@/types";
 import type { SessionPaneState } from "@/hooks/session/useSessionPane";
-import type { CodexModelSummary, SessionPaneBootstrap } from "@/hooks/session/types";
+import type { SessionPaneBootstrap } from "@/hooks/session/types";
 import type { PaneControllerContext } from "@/hooks/usePaneController";
 import type { SplitViewState } from "@/hooks/useSplitView";
 import type {
@@ -87,11 +87,8 @@ export interface SplitTopRowItemProps {
 
   // Settings
   showThinking: boolean;
-  acpPermissionBehavior: "ask" | "auto_accept" | "allow_all";
-  setAcpPermissionBehavior: (behavior: "ask" | "auto_accept" | "allow_all") => void;
 
-  // Agents & dev
-  agents: InstalledAgent[];
+  // Dev tools
   devFillEnabled: boolean;
   handleSeedDevExampleSpaceData: (() => void) | undefined;
   seedDevExampleConversation: (() => void) | undefined;
@@ -99,17 +96,11 @@ export interface SplitTopRowItemProps {
   // Grabbed elements
   grabbedElements: GrabbedElement[];
   handleRemoveGrabbedElement: (id: string) => void;
-
-  // Locked engine
-  lockedEngine: import("@/types").EngineId | null;
-  lockedAgentId: string | null;
-
   // Worktree
   handleAgentWorktreeChange: (path: string | null) => void;
 
-  // Revert
-  handleRevert: ((checkpointId: string) => void) | undefined;
-  handleFullRevert: ((checkpointId: string) => void) | undefined;
+
+
 
   // Scroll
   makePaneScrollCallback: (paneIndex: number) => (progress: number) => void;
@@ -122,8 +113,6 @@ export interface SplitTopRowItemProps {
   // Close
   handleCloseSplitPane: (sessionId: string | null) => Promise<void>;
 
-  // Codex models
-  codexRawModels: CodexModelSummary[];
 
   // Queue
   queuedCount: number;
@@ -134,11 +123,8 @@ export interface SplitTopRowItemProps {
   bgAgents: {
     agents: BackgroundAgent[];
     dismissAgent: (id: string) => void;
-    stopAgent: (id: string, taskId: string) => void;
   };
 
-  // Navigation
-  onManageACPs?: () => void;
 
   // Layout metrics
   getPreviewPaneMetrics: (previewIndex: number) => { widthPercent: number; handleSharePx: number };
@@ -205,7 +191,7 @@ function renderToolIsland(
   const controls = buildToolIslandControls(
     island,
     false,
-    "Move to bottom",
+    "移到底部",
     () => splitView.moveToolIsland(island.id, "bottom"),
     setSplitToolDrag,
     resetSplitToolDrag,
@@ -243,12 +229,11 @@ function renderToolIsland(
         headerControls={controls}
         projectPath={paneProjectPath}
         projectRoot={paneProjectRoot}
-        projectId={paneProject?.id ?? null}
         sessionId={island.sourceSessionId}
         messages={paneState.messages}
-        activeEngine={session?.engine}
         isActiveSessionPane={isActiveSessionPane}
-        hasLiveSession={paneState.isConnected}
+        isSessionProcessing={paneState.isProcessing}
+        isSessionCompacting={paneState.isCompacting}
         {...toolIslandCtx}
       />
     </div>
@@ -411,12 +396,9 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
     splitToolDrag, setSplitToolDrag, commitSplitToolDrop, resetSplitToolDrag,
     sidebarOpen, sidebarToggle,
     showThinking,
-    acpPermissionBehavior, setAcpPermissionBehavior,
-    agents, devFillEnabled, handleSeedDevExampleSpaceData, seedDevExampleConversation,
+    devFillEnabled, handleSeedDevExampleSpaceData, seedDevExampleConversation,
     grabbedElements, handleRemoveGrabbedElement,
-    lockedEngine, lockedAgentId,
     handleAgentWorktreeChange,
-    handleRevert, handleFullRevert,
     makePaneScrollCallback,
     handleCloseSplitPane,
     queuedCount,
@@ -441,7 +423,6 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
       <SplitPaneHost
         key={item.column.id}
         sessionId={primaryIsland.sourceSessionId}
-        acpPermissionBehavior={acpPermissionBehavior}
         loadBootstrap={loadSplitPaneBootstrap}
       >
         {({ session, paneState }) => renderToolColumn(item, session, paneState, false, { ...props, previewIndex, insertBeforeIndex })}
@@ -487,23 +468,15 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
       sidebarOpen,
       onToggleSidebar: sidebarToggle,
       showThinking,
-      acpPermissionBehavior,
-      onAcpPermissionBehaviorChange: setAcpPermissionBehavior,
-      agents,
       showDevFill: isActiveSessionPane ? devFillEnabled : false,
       onSeedDevExampleConversation: isActiveSessionPane ? seedDevExampleConversation : undefined,
       onSeedDevExampleSpaceData: isActiveSessionPane ? handleSeedDevExampleSpaceData : undefined,
       grabbedElements: isActiveSessionPane ? grabbedElements : [],
       onRemoveGrabbedElement: handleRemoveGrabbedElement,
-      lockedEngine: isActiveSessionPane ? lockedEngine : (resolvedSession?.engine ?? null),
-      lockedAgentId: isActiveSessionPane ? lockedAgentId : (resolvedSession?.agentId ?? null),
       projectPath: paneProjectPath,
       selectedWorktreePath: paneProjectPath,
       onSelectWorktree: isActiveSessionPane ? handleAgentWorktreeChange : undefined,
-      codexModelData: props.codexRawModels,
       spaceId: spaceActiveSpaceId,
-      onRevert: isActiveSessionPane ? handleRevert : undefined,
-      onFullRevert: isActiveSessionPane ? handleFullRevert : undefined,
       onTopScrollProgress: makePaneScrollCallback(displayIndex),
       onClosePane: () => { void handleCloseSplitPane(sessionId); },
       onFocus: () => splitView.setFocusedSession(sessionId),
@@ -525,7 +498,6 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
           targetColumnId: null,
         });
       },
-      onManageACPs: props.onManageACPs,
       onToolDragEnd: resetSplitToolDrag,
       onChatPaneDragOver: splitToolDrag ? (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
@@ -554,7 +526,6 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
     <SplitPaneHost
       key={sessionId}
       sessionId={sessionId}
-      acpPermissionBehavior={acpPermissionBehavior}
       loadBootstrap={loadSplitPaneBootstrap}
     >
       {({ session: hostedSession, paneState: hostedPaneState }) => (

@@ -37,7 +37,7 @@ export const OpenInEditorButton = memo(function OpenInEditorButton({
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={4}>
-        <p className="text-xs">Open in editor{line ? ` at line ${line}` : ""}</p>
+        <p className="text-xs">在编辑器中打开{line ? `（第 ${line} 行）` : ""}</p>
       </TooltipContent>
     </Tooltip>
   );

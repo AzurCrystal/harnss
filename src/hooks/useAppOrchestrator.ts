@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useProjectManager } from "@/hooks/useProjectManager";
 import { useSessionManager } from "@/hooks/useSessionManager";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -6,14 +6,12 @@ import { useSpaceManager } from "@/hooks/useSpaceManager";
 import { useSettingsCompat as useSettings } from "@/hooks/useSettingsCompat";
 import { useTheme } from "@/hooks/useTheme";
 import { useSpaceTerminals } from "@/hooks/useSpaceTerminals";
-import { useAgentRegistry } from "@/hooks/useAgentRegistry";
-import { useAcpAgentAutoUpdate } from "@/hooks/useAcpAgentAutoUpdate";
 import { useSplitView } from "@/hooks/useSplitView";
 import { useFolderManager } from "@/hooks/useFolderManager";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { canonicalizeModelValue, resolveModelValue } from "@/lib/model-utils";
+import { resolveModelValue } from "@/lib/model-utils";
 import type { ToolId } from "@/types/tools";
-import type { AcpPermissionBehavior, EngineId, InstalledAgent } from "@/types";
+import type { AcpPermissionBehavior, EngineId } from "@/types";
 import { getSyncedPlanMode } from "@/hooks/app-layout/session-utils";
 import { useAppEnvironmentState } from "@/hooks/app-layout/useAppEnvironmentState";
 import { useAppSessionActions } from "@/hooks/app-layout/useAppSessionActions";
@@ -37,24 +35,10 @@ export function useAppOrchestrator() {
     splitView.visibleSessionIds,
   );
 
-  const [selectedAgent, setSelectedAgent] = useState<InstalledAgent | null>(null);
-  const settingsEngine: EngineId = (!manager.isDraft && manager.activeSession?.engine)
-    ? manager.activeSession.engine
-    : (selectedAgent?.engine ?? "claude");
+  const settingsEngine: EngineId = "omp";
   const settingsProjectId = manager.activeSession?.projectId ?? manager.draftProjectId ?? null;
   const settings = useSettings(settingsProjectId, settingsEngine);
   const resolvedTheme = useTheme(settings.theme);
-  const { agents, refresh: refreshAgents, saveAgent, deleteAgent } = useAgentRegistry();
-  useAcpAgentAutoUpdate({ installedAgents: agents, refreshInstalledAgents: refreshAgents });
-  // Engine is locked once a session is active (not draft) — null means free to switch
-  const lockedEngine = !manager.isDraft && manager.activeSession?.engine
-    ? manager.activeSession.engine
-    : null;
-
-  // Agent ID is locked for ACP sessions — switching agents must open a new chat
-  const lockedAgentId = !manager.isDraft && manager.activeSession?.agentId
-    ? manager.activeSession.agentId
-    : null;
   const spaceTerminals = useSpaceTerminals();
 
   // ── Tool toggle with suppression ──
@@ -110,10 +94,7 @@ export function useAppOrchestrator() {
   const sessionActions = useAppSessionActions({
     manager,
     settings,
-    selectedAgent,
-    setSelectedAgent,
     setShowSettings: environment.setShowSettings,
-    refreshAgents,
     activeSpaceId: spaceManager.activeSpaceId,
     projectManager,
   });
@@ -134,77 +115,34 @@ export function useAppOrchestrator() {
   });
 
   useEffect(() => {
-    const claudeModels = manager.supportedModels.length > 0
-      ? manager.supportedModels
-      : manager.cachedClaudeModels;
-    if (claudeModels.length === 0) return;
+    const ompModels = manager.supportedModels;
+    if (ompModels.length === 0) return;
 
-    const currentModel = settings.getModelForEngine("claude");
-    const canonicalModel = canonicalizeModelValue(currentModel, claudeModels);
-    if (canonicalModel && canonicalModel !== currentModel) {
-      settings.setModelForEngine("claude", canonicalModel);
+    const currentModel = settings.getModelForEngine("omp");
+    const resolvedModel = resolveModelValue(currentModel, ompModels);
+    if (resolvedModel && resolvedModel !== currentModel) {
+      settings.setModelForEngine("omp", resolvedModel);
     }
-  }, [manager.cachedClaudeModels, manager.supportedModels, settings.getModelForEngine, settings.setModelForEngine]);
+  }, [manager.supportedModels, settings.getModelForEngine, settings.setModelForEngine]);
 
-  // Sync model from loaded session (canonical runtime names -> picker values)
+  // Sync the active OMP session model into the existing frontend setting value.
   useEffect(() => {
     if (!manager.activeSessionId || manager.isDraft || manager.supportedModels.length === 0) return;
-    const session = manager.sessions.find((s) => s.id === manager.activeSessionId);
+    const session = manager.sessions.find((entry) => entry.id === manager.activeSessionId);
     if (!session?.model) return;
 
-    const sessionEngine = session.engine ?? "claude";
-    const syncedModel = sessionEngine === "claude"
-      ? (canonicalizeModelValue(session.model, manager.supportedModels) ?? session.model)
-      : (resolveModelValue(session.model, manager.supportedModels) ?? session.model);
-    if (syncedModel !== settings.getModelForEngine(sessionEngine)) {
-      settings.setModelForEngine(sessionEngine, syncedModel);
+    const syncedModel = resolveModelValue(session.model, manager.supportedModels) ?? session.model;
+    if (syncedModel !== settings.getModelForEngine("omp")) {
+      settings.setModelForEngine("omp", syncedModel);
     }
   }, [manager.activeSessionId, manager.isDraft, manager.sessions, manager.supportedModels, settings.getModelForEngine, settings.setModelForEngine]);
 
-  useEffect(() => {
-    if (!manager.activeSessionId || manager.isDraft) return;
-    const session = manager.sessions.find((s) => s.id === manager.activeSessionId);
-    if (!session || (session.engine ?? "claude") !== "claude" || !session.effort) return;
-    if (session.effort !== settings.claudeEffort) {
-      settings.setClaudeEffort(session.effort);
-    }
-  }, [manager.activeSessionId, manager.isDraft, manager.sessions, settings.claudeEffort, settings.setClaudeEffort]);
-
-  // Sync selectedAgent when switching to a different session
-  useEffect(() => {
-    if (!manager.activeSessionId || manager.isDraft) return;
-    const session = manager.sessions.find((s) => s.id === manager.activeSessionId);
-    if (!session) return;
-
-    if (session.engine === "acp" && session.agentId) {
-      const agent = agents.find((a) => a.id === session.agentId);
-      if (agent && selectedAgent?.id !== agent.id) {
-        setSelectedAgent(agent);
-      }
-      return;
-    }
-
-    if (session.engine === "codex") {
-      const codexAgent = (session.agentId
-        ? agents.find((a) => a.id === session.agentId)
-        : undefined) ?? agents.find((a) => a.engine === "codex");
-      if (codexAgent && selectedAgent?.id !== codexAgent.id) {
-        setSelectedAgent(codexAgent);
-      }
-      return;
-    }
-
-    if (selectedAgent !== null) {
-      setSelectedAgent(null);
-    }
-  }, [manager.activeSessionId, manager.isDraft, manager.sessions, agents]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Keyboard shortcuts ──
   useKeyboardShortcuts({
     planMode: settings.planMode,
     setPlanMode: settings.setPlanMode,
     setActivePlanMode: manager.setActivePlanMode,
-    activeEngine: manager.activeSession?.engine ?? selectedAgent?.engine ?? "claude",
     activeSessionId: manager.activeSessionId,
     setChatSearchOpen: environment.setChatSearchOpen,
   });
@@ -275,15 +213,6 @@ export function useAppOrchestrator() {
     draftSpaceId: spaceWorkflow.draftSpaceId,
   };
 
-  const agentState = {
-    agents,
-    selectedAgent,
-    saveAgent,
-    deleteAgent,
-    handleAgentChange: sessionActions.handleAgentChange,
-    lockedEngine,
-    lockedAgentId,
-  };
 
   const actions = {
     handleToggleTool,
@@ -293,7 +222,6 @@ export function useAppOrchestrator() {
     handleModelChange: sessionActions.handleModelChange,
     handlePermissionModeChange: sessionActions.handlePermissionModeChange,
     handlePlanModeChange: sessionActions.handlePlanModeChange,
-    handleClaudeModelEffortChange: sessionActions.handleClaudeModelEffortChange,
     handleAgentWorktreeChange: sessionActions.handleAgentWorktreeChange,
     handleStop: sessionActions.handleStop,
     handleSendQueuedNow: sessionActions.handleSendQueuedNow,
@@ -328,7 +256,6 @@ export function useAppOrchestrator() {
     managers,
     state,
     ui,
-    agentState,
     actions,
 
     // Core managers
@@ -340,14 +267,6 @@ export function useAppOrchestrator() {
     settings,
     resolvedTheme,
 
-    // Agent state
-    agents,
-    selectedAgent,
-    saveAgent,
-    deleteAgent,
-    handleAgentChange: sessionActions.handleAgentChange,
-    lockedEngine,
-    lockedAgentId,
 
     // Derived state
     activeProjectId: spaceWorkflow.activeProjectId,
@@ -401,7 +320,6 @@ export function useAppOrchestrator() {
     handleModelChange: sessionActions.handleModelChange,
     handlePermissionModeChange: sessionActions.handlePermissionModeChange,
     handlePlanModeChange: sessionActions.handlePlanModeChange,
-    handleClaudeModelEffortChange: sessionActions.handleClaudeModelEffortChange,
     handleAgentWorktreeChange: sessionActions.handleAgentWorktreeChange,
     handleStop: sessionActions.handleStop,
     handleSendQueuedNow: sessionActions.handleSendQueuedNow,

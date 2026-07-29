@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageAttachment, UIMessage } from "../../types";
-import type { CollaborationMode } from "../../types/codex-protocol/CollaborationMode";
-import { imageAttachmentsToCodexInputs } from "../../lib/engine/codex-adapter";
+import { imageAttachmentsToOmpImages } from "../../lib/engine/omp-adapter";
 import { suppressNextSessionCompletion } from "../../lib/notification-utils";
-import { buildSdkContent } from "../../lib/engine/protocol";
 import { createSystemMessage } from "../../lib/message-factory";
-import { buildCodexCollabMode, DRAFT_ID } from "./types";
+import { DRAFT_ID } from "./types";
 import type { SharedSessionRefs, SharedSessionSetters, EngineHooks, QueuedMessage } from "./types";
 
 interface UseMessageQueueParams {
@@ -21,147 +19,100 @@ type BoundaryWaitState =
   | { kind: "asap" };
 
 export function useMessageQueue({ refs, setters, engines, activeSessionId }: UseMessageQueueParams) {
-  const { claude, acp, codex, engine } = engines;
+  const { omp } = engines;
   const { setQueuedCount } = setters;
   const {
     activeSessionIdRef,
-    sessionsRef,
     liveSessionIdsRef,
     backgroundStoreRef,
     messageQueueRef,
     messagesRef,
-    startOptionsRef,
-    codexEffortRef,
   } = refs;
   const drainingSessionIdsRef = useRef<Set<string>>(new Set());
   const boundaryWaitRef = useRef<Map<string, BoundaryWaitState>>(new Map());
-  // Guards against draining with stale isProcessing from the previous session.
-  // When activeSessionId changes, engine.isProcessing still reflects the OLD session's
-  // value until useEngineBase's reset effect runs — which happens AFTER the drain effect.
   const sessionSwitchGuardRef = useRef(false);
   const [switchDrainRetryTick, setSwitchDrainRetryTick] = useState(0);
   const [sendNextId, setSendNextId] = useState<string | null>(null);
 
   const getPendingToolMessageIds = useCallback((messages: UIMessage[]) => {
     const ids: string[] = [];
-    for (const m of messages) {
-      if (m.role === "tool_call" && !m.toolResult && !m.toolError) ids.push(m.id);
+    for (const message of messages) {
+      if (message.role === "tool_call" && !message.toolResult && !message.toolError) ids.push(message.id);
     }
     return ids;
   }, []);
 
-  const isToolMessageStillPending = useCallback((messages: UIMessage[], messageId: string) => {
-    const msg = messages.find((m) => m.id === messageId);
-    if (!msg || msg.role !== "tool_call") return false;
-    return !msg.toolResult && !msg.toolError;
-  }, []);
-
-  const hasStreamingAssistant = useCallback((messages: UIMessage[]) => {
-    for (const m of messages) {
-      if (m.role === "assistant" && m.isStreaming) return true;
-    }
-    return false;
-  }, []);
 
   const getQueueForSession = useCallback((sessionId: string): QueuedMessage[] => {
     const existing = messageQueueRef.current.get(sessionId);
     if (existing) return existing;
-    const created: QueuedMessage[] = [];
-    messageQueueRef.current.set(sessionId, created);
-    return created;
+    const queue: QueuedMessage[] = [];
+    messageQueueRef.current.set(sessionId, queue);
+    return queue;
   }, [messageQueueRef]);
 
-  const getSessionEngine = useCallback((sessionId: string) => {
-    return sessionsRef.current.find((s) => s.id === sessionId)?.engine ?? "claude";
-  }, [sessionsRef]);
-
-  const reorderSentQueuedMessage = useCallback((prev: UIMessage[], messageId: string) => {
-    const index = prev.findIndex((m) => m.id === messageId);
-    if (index < 0) return prev;
-    const sentMessage = { ...prev[index], isQueued: false };
-    const rest = prev.filter((m) => m.id !== messageId);
-    const nonQueued = rest.filter((m) => !m.isQueued);
-    const queued = rest.filter((m) => m.isQueued);
-    return [...nonQueued, sentMessage, ...queued];
+  const reorderSentQueuedMessage = useCallback((messages: UIMessage[], messageId: string) => {
+    const index = messages.findIndex((message) => message.id === messageId);
+    if (index < 0) return messages;
+    const sentMessage = { ...messages[index], isQueued: false };
+    const rest = messages.filter((message) => message.id !== messageId);
+    return [
+      ...rest.filter((message) => !message.isQueued),
+      sentMessage,
+      ...rest.filter((message) => message.isQueued),
+    ];
   }, []);
 
   const updateSessionMessages = useCallback((
     sessionId: string,
-    sessionEngine: "claude" | "acp" | "codex",
-    updater: (prev: UIMessage[]) => UIMessage[],
+    updater: (messages: UIMessage[]) => UIMessage[],
   ) => {
     if (sessionId === activeSessionIdRef.current) {
-      const targetSetMessages = sessionEngine === "codex"
-        ? codex.setMessages
-        : sessionEngine === "acp"
-          ? acp.setMessages
-          : claude.setMessages;
-      targetSetMessages(updater);
+      omp.setMessages(updater);
       return;
     }
     backgroundStoreRef.current.updateMessages(sessionId, updater);
-  }, [activeSessionIdRef, acp.setMessages, backgroundStoreRef, claude.setMessages, codex.setMessages]);
+  }, [activeSessionIdRef, backgroundStoreRef, omp.setMessages]);
 
-  const setSessionProcessing = useCallback((
-    sessionId: string,
-    sessionEngine: "claude" | "acp" | "codex",
-    isProcessing: boolean,
-  ) => {
+  const setSessionProcessing = useCallback((sessionId: string, isProcessing: boolean) => {
     if (sessionId === activeSessionIdRef.current) {
-      const targetSetIsProcessing = sessionEngine === "codex"
-        ? codex.setIsProcessing
-        : sessionEngine === "acp"
-          ? acp.setIsProcessing
-          : claude.setIsProcessing;
-      targetSetIsProcessing(isProcessing);
+      omp.setIsProcessing(isProcessing);
       return;
     }
     backgroundStoreRef.current.setProcessing(sessionId, isProcessing);
-  }, [activeSessionIdRef, acp.setIsProcessing, backgroundStoreRef, claude.setIsProcessing, codex.setIsProcessing]);
+  }, [activeSessionIdRef, backgroundStoreRef, omp.setIsProcessing]);
 
   const clearQueueForSession = useCallback((sessionId: string) => {
     if (!sessionId || sessionId === DRAFT_ID) {
-      if (sessionId === activeSessionIdRef.current) {
-        setQueuedCount(0);
-      }
+      if (sessionId === activeSessionIdRef.current) setQueuedCount(0);
       return;
     }
 
     const queue = messageQueueRef.current.get(sessionId) ?? [];
-    const queuedIds = new Set(queue.map((q) => q.messageId));
+    const queuedIds = new Set(queue.map((entry) => entry.messageId));
     messageQueueRef.current.delete(sessionId);
     boundaryWaitRef.current.delete(sessionId);
     drainingSessionIdsRef.current.delete(sessionId);
-    setSendNextId((prev) => (prev && queuedIds.has(prev) ? null : prev));
-    if (sessionId === activeSessionIdRef.current) {
-      setQueuedCount(0);
-    }
+    setSendNextId((current) => (current && queuedIds.has(current) ? null : current));
+    if (sessionId === activeSessionIdRef.current) setQueuedCount(0);
     if (queuedIds.size === 0) return;
 
-    const sessionEngine = getSessionEngine(sessionId);
-    updateSessionMessages(sessionId, sessionEngine, (prev) => prev.filter((m) => !queuedIds.has(m.id)));
-  }, [
-    activeSessionIdRef,
-    getSessionEngine,
-    messageQueueRef,
-    setQueuedCount,
-    updateSessionMessages,
-  ]);
+    updateSessionMessages(sessionId, (messages) => messages.filter((message) => !queuedIds.has(message.id)));
+  }, [activeSessionIdRef, messageQueueRef, setQueuedCount, updateSessionMessages]);
 
-  /** Add a message to the queue and show it in chat immediately with isQueued styling */
   const enqueueMessage = useCallback((text: string, images?: ImageAttachment[], displayText?: string) => {
-    const activeId = activeSessionIdRef.current;
-    if (!activeId || activeId === DRAFT_ID) return;
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) return;
 
-    const msgId = `user-queued-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const queue = getQueueForSession(activeId);
-    queue.push({ text, images, displayText, messageId: msgId });
+    const messageId = `user-queued-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const queue = getQueueForSession(sessionId);
+    queue.push({ text, images, displayText, messageId });
     setQueuedCount(queue.length);
-    engine.setMessages((prev) => [
-      ...prev,
+    omp.setMessages((messages) => [
+      ...messages,
       {
-        id: msgId,
-        role: "user" as const,
+        id: messageId,
+        role: "user",
         content: text,
         timestamp: Date.now(),
         isQueued: true,
@@ -169,45 +120,30 @@ export function useMessageQueue({ refs, setters, engines, activeSessionId }: Use
         ...(displayText ? { displayContent: displayText } : {}),
       },
     ]);
-  }, [activeSessionIdRef, engine.setMessages, getQueueForSession, setQueuedCount]);
+  }, [activeSessionIdRef, getQueueForSession, omp.setMessages, setQueuedCount]);
 
   const reorderQueuedMessagesInUI = useCallback((orderedMessageIds: string[]) => {
-    const rank = new Map<string, number>();
-    for (let i = 0; i < orderedMessageIds.length; i++) {
-      rank.set(orderedMessageIds[i], i);
-    }
-
-    engine.setMessages((prev) => {
-      const nonQueued: UIMessage[] = [];
-      const queued: UIMessage[] = [];
-      for (const message of prev) {
-        if (message.isQueued) {
-          queued.push(message);
-        } else {
-          nonQueued.push(message);
-        }
-      }
-      if (queued.length <= 1) return prev;
-
-      queued.sort((a, b) => {
-        const aRank = rank.get(a.id) ?? Number.MAX_SAFE_INTEGER;
-        const bRank = rank.get(b.id) ?? Number.MAX_SAFE_INTEGER;
-        if (aRank !== bRank) return aRank - bRank;
-        return a.timestamp - b.timestamp;
+    const rank = new Map(orderedMessageIds.map((messageId, index) => [messageId, index]));
+    omp.setMessages((messages) => {
+      const nonQueued = messages.filter((message) => !message.isQueued);
+      const queued = messages.filter((message) => message.isQueued);
+      if (queued.length <= 1) return messages;
+      queued.sort((left, right) => {
+        const leftRank = rank.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+        const rightRank = rank.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+        return leftRank === rightRank ? left.timestamp - right.timestamp : leftRank - rightRank;
       });
-
       return [...nonQueued, ...queued];
     });
-  }, [engine.setMessages]);
+  }, [omp.setMessages]);
 
-  /** Clear the entire queue and remove queued messages from chat */
   const clearQueue = useCallback(() => {
-    const activeId = activeSessionIdRef.current;
-    if (!activeId || activeId === DRAFT_ID) {
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) {
       setQueuedCount(0);
       return;
     }
-    clearQueueForSession(activeId);
+    clearQueueForSession(sessionId);
   }, [activeSessionIdRef, clearQueueForSession, setQueuedCount]);
 
   const drainQueuedMessageForSession = useCallback(async (sessionId: string) => {
@@ -216,78 +152,58 @@ export function useMessageQueue({ refs, setters, engines, activeSessionId }: Use
     if (!liveSessionIdsRef.current.has(sessionId)) return false;
 
     const isActiveSession = sessionId === activeSessionIdRef.current;
-    const sessionProcessing = isActiveSession
-      ? engine.isProcessing
+    const isProcessing = isActiveSession
+      ? omp.isProcessing
       : (backgroundStoreRef.current.get(sessionId)?.isProcessing ?? false);
-    if (sessionProcessing) return false;
+    if (isProcessing) return false;
 
     const queue = messageQueueRef.current.get(sessionId);
-    if (!queue || queue.length === 0) return false;
+    if (!queue?.length) return false;
 
-    const sessionEngine = getSessionEngine(sessionId);
     const next = queue.shift()!;
     if (queue.length === 0) {
       messageQueueRef.current.delete(sessionId);
       boundaryWaitRef.current.delete(sessionId);
     }
-    setSendNextId((prev) => prev === next.messageId ? null : prev);
-    if (isActiveSession) {
-      setQueuedCount(queue.length);
-    }
+    setSendNextId((current) => (current === next.messageId ? null : current));
+    if (isActiveSession) setQueuedCount(queue.length);
     drainingSessionIdsRef.current.add(sessionId);
+    updateSessionMessages(sessionId, (messages) => reorderSentQueuedMessage(messages, next.messageId));
 
-    updateSessionMessages(sessionId, sessionEngine, (prev) => reorderSentQueuedMessage(prev, next.messageId));
-
-    const handleSendError = (message = "Failed to send queued message.") => {
-      updateSessionMessages(sessionId, sessionEngine, (prev) => [
-        ...prev,
+    const fail = (message: string) => {
+      updateSessionMessages(sessionId, (messages) => [
+        ...messages,
         createSystemMessage(message, true),
       ]);
       clearQueueForSession(sessionId);
-      setSessionProcessing(sessionId, sessionEngine, false);
+      setSessionProcessing(sessionId, false);
     };
 
     try {
-      if (sessionEngine === "acp") {
-        setSessionProcessing(sessionId, sessionEngine, true);
-        const result = await window.claude.acp.prompt(sessionId, next.text, next.images);
-        if (result?.error) handleSendError("Failed to send queued message.");
-      } else if (sessionEngine === "codex") {
-        setSessionProcessing(sessionId, sessionEngine, true);
-        const session = sessionsRef.current.find((s) => s.id === sessionId);
-        let codexCollabMode: CollaborationMode | undefined;
-        try {
-          codexCollabMode = buildCodexCollabMode(startOptionsRef.current.planMode, session?.model);
-        } catch (err) {
-          updateSessionMessages(sessionId, sessionEngine, (prev) => [
-            ...prev,
-            createSystemMessage(err instanceof Error ? err.message : String(err), true),
-          ]);
+      setSessionProcessing(sessionId, true);
+      if (isActiveSession) {
+        const sent = await omp.sendRaw(next.text, next.images);
+        if (!sent) {
           clearQueueForSession(sessionId);
-          setSessionProcessing(sessionId, sessionEngine, false);
+          setSessionProcessing(sessionId, false);
           return false;
         }
-        const result = await window.claude.codex.send(
-          sessionId,
-          next.text,
-          imageAttachmentsToCodexInputs(next.images),
-          codexEffortRef.current,
-          codexCollabMode,
-        );
-        if (result?.error) handleSendError("Failed to send queued message.");
       } else {
-        setSessionProcessing(sessionId, sessionEngine, true);
-        const content = buildSdkContent(next.text, next.images);
-        const result = await window.claude.send(sessionId, {
-          type: "user",
-          message: { role: "user", content },
+        const images = imageAttachmentsToOmpImages(next.images);
+        const result = await window.claude.omp.command(sessionId, {
+          type: "prompt",
+          message: next.text,
+          ...(images?.length ? { images } : {}),
         });
-        if (result?.error || result?.ok === false) handleSendError("Failed to send queued message.");
+        if (result.error) {
+          fail(result.error);
+          return false;
+        }
       }
       return true;
-    } catch {
-      handleSendError("Failed to send queued message.");
-      return false;
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       drainingSessionIdsRef.current.delete(sessionId);
     }
@@ -295,161 +211,119 @@ export function useMessageQueue({ refs, setters, engines, activeSessionId }: Use
     activeSessionIdRef,
     backgroundStoreRef,
     clearQueueForSession,
-    codexEffortRef,
-    engine.isProcessing,
-    getSessionEngine,
     liveSessionIdsRef,
     messageQueueRef,
+    omp.isProcessing,
+    omp.sendRaw,
     reorderSentQueuedMessage,
-    sessionsRef,
     setQueuedCount,
     setSessionProcessing,
-    startOptionsRef,
     updateSessionMessages,
   ]);
 
   const drainNextQueuedMessage = useCallback(async () => {
-    const activeId = activeSessionIdRef.current;
-    if (!activeId || activeId === DRAFT_ID) return false;
-    return drainQueuedMessageForSession(activeId);
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) return false;
+    return drainQueuedMessageForSession(sessionId);
   }, [activeSessionIdRef, drainQueuedMessageForSession]);
 
   const continueQueuedBackgroundSession = useCallback((sessionId: string) => {
-    if (!sessionId || sessionId === DRAFT_ID) return false;
-    if (sessionId === activeSessionIdRef.current) return false;
+    if (!sessionId || sessionId === DRAFT_ID || sessionId === activeSessionIdRef.current) return false;
     if (drainingSessionIdsRef.current.has(sessionId)) return false;
     if (!liveSessionIdsRef.current.has(sessionId)) return false;
     if (backgroundStoreRef.current.get(sessionId)?.isProcessing) return false;
-    const queue = messageQueueRef.current.get(sessionId);
-    if (!queue || queue.length === 0) return false;
+    if (!messageQueueRef.current.get(sessionId)?.length) return false;
     void drainQueuedMessageForSession(sessionId);
     return true;
   }, [activeSessionIdRef, backgroundStoreRef, drainQueuedMessageForSession, liveSessionIdsRef, messageQueueRef]);
 
   const unqueueMessage = useCallback((messageId: string) => {
-    const activeId = activeSessionIdRef.current;
-    if (!activeId || activeId === DRAFT_ID) return;
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) return;
 
-    const queue = messageQueueRef.current.get(activeId);
+    const queue = messageQueueRef.current.get(sessionId);
     if (!queue) return;
+    const index = queue.findIndex((entry) => entry.messageId === messageId);
+    if (index < 0) return;
 
-    const queueIndex = queue.findIndex((entry) => entry.messageId === messageId);
-    if (queueIndex < 0) return;
-
-    queue.splice(queueIndex, 1);
+    queue.splice(index, 1);
     if (queue.length === 0) {
-      messageQueueRef.current.delete(activeId);
-      boundaryWaitRef.current.delete(activeId);
+      messageQueueRef.current.delete(sessionId);
+      boundaryWaitRef.current.delete(sessionId);
     } else if (sendNextId === messageId) {
-      boundaryWaitRef.current.delete(activeId);
+      boundaryWaitRef.current.delete(sessionId);
     }
-
-    setSendNextId((prev) => prev === messageId ? null : prev);
+    setSendNextId((current) => (current === messageId ? null : current));
     setQueuedCount(queue.length);
-    engine.setMessages((prev) => prev.filter((message) => message.id !== messageId));
-  }, [
-    activeSessionIdRef,
-    engine.setMessages,
-    messageQueueRef,
-    sendNextId,
-    setQueuedCount,
-  ]);
+    omp.setMessages((messages) => messages.filter((message) => message.id !== messageId));
+  }, [activeSessionIdRef, messageQueueRef, omp.setMessages, sendNextId, setQueuedCount]);
 
   const sendQueuedMessageNext = useCallback(async (messageId: string) => {
-    const activeId = activeSessionIdRef.current;
-    if (!activeId || activeId === DRAFT_ID) return;
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) return;
 
-    const queue = messageQueueRef.current.get(activeId) ?? [];
-    const queueIndex = queue.findIndex((entry) => entry.messageId === messageId);
-    if (queueIndex < 0) return;
-
-    if (queueIndex > 0) {
-      const [selected] = queue.splice(queueIndex, 1);
-      queue.unshift(selected);
-    }
+    const queue = messageQueueRef.current.get(sessionId) ?? [];
+    const index = queue.findIndex((entry) => entry.messageId === messageId);
+    if (index < 0) return;
+    if (index > 0) queue.unshift(queue.splice(index, 1)[0]);
     setSendNextId(messageId);
     setQueuedCount(queue.length);
     reorderQueuedMessagesInUI(queue.map((entry) => entry.messageId));
 
-    // Boundary-aware behavior:
-    // 1) never interrupt while currently streaming assistant text
-    // 2) when in tools phase, interrupt once at least one pending tool completes
-    // 3) otherwise interrupt on the next safe processing gap
-    if (engine.isProcessing) {
-      const currentMessages = messagesRef.current;
-      const pendingToolMessageIds = getPendingToolMessageIds(currentMessages);
-      const waitState: BoundaryWaitState = hasStreamingAssistant(currentMessages)
+    if (omp.isProcessing) {
+      const messages = messagesRef.current;
+      const pendingToolMessageIds = getPendingToolMessageIds(messages);
+      const isStreaming = messages.some((message) => message.role === "assistant" && message.isStreaming);
+      boundaryWaitRef.current.set(sessionId, isStreaming
         ? { kind: "after_stream" }
         : pendingToolMessageIds.length > 0
           ? { kind: "after_tool", pendingToolMessageIdsAtClick: pendingToolMessageIds }
-          : { kind: "asap" };
-      boundaryWaitRef.current.set(activeId, waitState);
+          : { kind: "asap" });
       return;
     }
 
-    if (!liveSessionIdsRef.current.has(activeId)) return;
-    await drainNextQueuedMessage();
+    if (liveSessionIdsRef.current.has(sessionId)) await drainNextQueuedMessage();
   }, [
     activeSessionIdRef,
     drainNextQueuedMessage,
-    engine.isProcessing,
     getPendingToolMessageIds,
-    hasStreamingAssistant,
     liveSessionIdsRef,
-    messagesRef,
     messageQueueRef,
+    messagesRef,
+    omp.isProcessing,
     reorderQueuedMessagesInUI,
     setQueuedCount,
   ]);
 
   useEffect(() => {
-    const activeId = activeSessionIdRef.current;
-    if (!activeId || activeId === DRAFT_ID) return;
-    const waitState = boundaryWaitRef.current.get(activeId);
-    if (!waitState) return;
-    if (!engine.isProcessing) {
-      boundaryWaitRef.current.delete(activeId);
-      return;
-    }
-    if (!liveSessionIdsRef.current.has(activeId)) {
-      boundaryWaitRef.current.delete(activeId);
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) return;
+    const waitState = boundaryWaitRef.current.get(sessionId);
+    if (!waitState || !omp.isProcessing || !liveSessionIdsRef.current.has(sessionId)) {
+      if (waitState) boundaryWaitRef.current.delete(sessionId);
       return;
     }
 
-    const currentMessages = messagesRef.current;
-    const streaming = hasStreamingAssistant(currentMessages);
-    let shouldInterrupt = false;
-    if (!streaming) {
-      if (waitState.kind === "after_stream") shouldInterrupt = true;
-      else if (waitState.kind === "after_tool") {
-        shouldInterrupt = waitState.pendingToolMessageIdsAtClick.some(
-          (messageId) => !isToolMessageStillPending(currentMessages, messageId),
-        );
-      }
-      else shouldInterrupt = true;
-    }
+    const messages = messagesRef.current;
+    if (messages.some((message) => message.role === "assistant" && message.isStreaming)) return;
+    const shouldInterrupt = waitState.kind === "after_stream"
+      || waitState.kind === "asap"
+      || waitState.pendingToolMessageIdsAtClick.some((messageId) => {
+        const message = messages.find((entry) => entry.id === messageId);
+        return !message || message.role !== "tool_call" || !!message.toolResult || !!message.toolError;
+      });
     if (!shouldInterrupt) return;
 
-    boundaryWaitRef.current.delete(activeId);
-    const sessionEngine = sessionsRef.current.find((s) => s.id === activeId)?.engine ?? "claude";
-    suppressNextSessionCompletion(activeId);
-    if (sessionEngine === "acp") {
-      void window.claude.acp.cancel(activeId);
-    } else if (sessionEngine === "codex") {
-      void window.claude.codex.interrupt(activeId);
-    } else {
-      void window.claude.interrupt(activeId);
-    }
+    boundaryWaitRef.current.delete(sessionId);
+    suppressNextSessionCompletion(sessionId);
+    void omp.interrupt();
   }, [
     activeSessionId,
     activeSessionIdRef,
-    engine.isProcessing,
-    engine.messages,
-    isToolMessageStillPending,
-    hasStreamingAssistant,
     liveSessionIdsRef,
     messagesRef,
-    sessionsRef,
+    omp.interrupt,
+    omp.isProcessing,
   ]);
 
   useEffect(() => {
@@ -462,26 +336,19 @@ export function useMessageQueue({ refs, setters, engines, activeSessionId }: Use
     setQueuedCount(messageQueueRef.current.get(activeSessionId)?.length ?? 0);
   }, [activeSessionId, messageQueueRef, setQueuedCount]);
 
-  // Mark session switches so the drain effect below skips one cycle.
-  // Also bump a retry tick so we always get a second pass after the new
-  // session state's reset effect has had a chance to settle, even when the
-  // restored session is already idle and `isProcessing` stays false.
-  // Declared BEFORE the drain effect so it runs first (React fires effects in declaration order).
   useEffect(() => {
     sessionSwitchGuardRef.current = true;
-    setSwitchDrainRetryTick((prev) => prev + 1);
+    setSwitchDrainRetryTick((tick) => tick + 1);
   }, [activeSessionId]);
 
   useEffect(() => {
-    // Skip drain on the render where activeSessionId just changed — engine.isProcessing
-    // is still stale from the previous session and would incorrectly trigger the drain.
     if (sessionSwitchGuardRef.current) {
       sessionSwitchGuardRef.current = false;
       return;
     }
-    if (engine.isProcessing) return;
+    if (omp.isProcessing) return;
     void drainNextQueuedMessage();
-  }, [activeSessionId, drainNextQueuedMessage, engine.isProcessing, switchDrainRetryTick]);
+  }, [activeSessionId, drainNextQueuedMessage, omp.isProcessing, switchDrainRetryTick]);
 
   return {
     enqueueMessage,

@@ -32,27 +32,27 @@ import type {
 } from "@/types";
 
 const TOOL_LABELS: Record<string, string> = {
-  Read: "Read a file",
-  Write: "Create a file",
-  Edit: "Edit a file",
-  Bash: "Run a command",
-  NotebookEdit: "Edit a notebook",
+  Read: "读取文件",
+  Write: "创建文件",
+  Edit: "编辑文件",
+  Bash: "运行命令",
+  NotebookEdit: "编辑笔记本",
 };
 
 // ── Scoped "always allow" options ──
 
 const SCOPE_LABELS: Record<PermissionUpdateDestination, string> = {
-  session: "this session",
-  localSettings: "this project (just you)",
-  projectSettings: "this project (shared)",
-  userSettings: "all projects",
+  session: "此会话",
+  localSettings: "此项目（仅自己）",
+  projectSettings: "此项目（共享）",
+  userSettings: "所有项目",
 };
 
 const SCOPE_DESCRIPTIONS: Record<PermissionUpdateDestination, string> = {
-  session: "Only for this session (not saved)",
-  localSettings: "Saves to .claude/settings.local.json (gitignored)",
-  projectSettings: "Saves to .claude/settings.json (shared with team)",
-  userSettings: "Saves to ~/.claude/settings.json",
+  session: "仅此会话（不保存）",
+  localSettings: "保存到 .claude/settings.local.json（已被 git 忽略）",
+  projectSettings: "保存到 .claude/settings.json（与团队共享）",
+  userSettings: "保存到 ~/.claude/settings.json",
 };
 
 /** Display order for scope destinations (matches Cursor extension). */
@@ -66,16 +66,6 @@ const SCOPE_ORDER: PermissionUpdateDestination[] = [
 /** localStorage key for persisting the last-selected permission destination (same key as Cursor). */
 const DESTINATION_STORAGE_KEY = "claude-vscode-permission-destination";
 
-function getSavedDestination(): PermissionUpdateDestination | null {
-  try {
-    const v = localStorage.getItem(DESTINATION_STORAGE_KEY);
-    if (v && (SCOPE_ORDER as string[]).includes(v))
-      return v as PermissionUpdateDestination;
-  } catch {
-    /* SSR / restricted */
-  }
-  return null;
-}
 
 function saveDestination(d: PermissionUpdateDestination) {
   try {
@@ -136,7 +126,7 @@ function formatToolDetail(req: PermissionRequest): ToolDetail | null {
     const description =
       typeof input.description === "string" ? input.description.trim() : "";
     return {
-      label: "Command",
+      label: "命令",
       value: input.command,
       ...(description ? { meta: description } : {}),
     };
@@ -144,25 +134,25 @@ function formatToolDetail(req: PermissionRequest): ToolDetail | null {
   if (req.toolName === "Read" && typeof input.file_path === "string") {
     const pages = typeof input.pages === "string" ? input.pages.trim() : "";
     return {
-      label: "File",
+      label: "文件",
       value: input.file_path,
-      ...(pages ? { meta: `Pages: ${pages}` } : {}),
+      ...(pages ? { meta: `页码：${pages}` } : {}),
     };
   }
   if (req.toolName === "Write" && typeof input.file_path === "string") {
-    return { label: "File", value: input.file_path };
+    return { label: "文件", value: input.file_path };
   }
   if (req.toolName === "Edit" && typeof input.file_path === "string") {
-    return { label: "File", value: input.file_path };
+    return { label: "文件", value: input.file_path };
   }
   if (req.toolName === "NotebookEdit" && typeof input.file_path === "string") {
-    return { label: "Notebook", value: input.file_path };
+    return { label: "笔记本", value: input.file_path };
   }
   if (typeof input.file_path === "string") {
-    return { label: "Target", value: input.file_path };
+    return { label: "目标", value: input.file_path };
   }
   if (typeof input.command === "string") {
-    return { label: "Command", value: input.command };
+    return { label: "命令", value: input.command };
   }
   return null;
 }
@@ -194,14 +184,14 @@ interface PermissionPromptProps {
 const EXIT_PLAN_MODES = [
   {
     id: "acceptEdits",
-    label: "Accept Edits",
-    description: "Auto-approve file edits",
+    label: "接受编辑",
+    description: "自动批准文件编辑",
   },
-  { id: "default", label: "Ask First", description: "Prompt before each tool" },
+  { id: "default", label: "先询问", description: "每次使用工具前进行提示" },
   {
     id: "bypassPermissions",
-    label: "Allow All",
-    description: "No permission prompts",
+    label: "全部允许",
+    description: "不显示权限提示",
   },
 ] as const;
 
@@ -219,7 +209,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
       <div className="pointer-events-auto rounded-2xl border border-border/60 bg-background/55 shadow-lg backdrop-blur-lg">
         <div className="flex flex-col gap-3 px-4 py-3.5">
           <p className="text-[13px] text-foreground">
-            Ready to implement. How should permissions work?
+            准备开始实现。权限应如何设置？
           </p>
 
           <div className="flex flex-wrap gap-1.5">
@@ -247,7 +237,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
         <div className="flex flex-col gap-2 border-t border-border/40 px-3 py-2.5">
           <input
             type="text"
-            placeholder="Give feedback to refine the plan..."
+            placeholder="输入反馈以完善计划…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             onKeyDown={(e) => {
@@ -264,7 +254,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
               className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
-              Stay in Plan
+              留在计划模式
             </Button>
             {hasFeedback && (
               <Button
@@ -273,7 +263,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
                 className="h-8 gap-1.5 text-xs"
               >
                 <Send className="h-3.5 w-3.5" />
-                Send Feedback
+                发送反馈
               </Button>
             )}
           </div>
@@ -304,6 +294,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
 
   const isMulti = questions.length > 1;
   const q = questions[currentIndex];
+  if (!q) return null;
   const questionKey = getAskUserQuestionKey(q, currentIndex);
   const options = q.options ?? [];
   const hasOptions = options.length > 0;
@@ -380,7 +371,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
           <MessageCircleQuestion className="h-4 w-4 shrink-0 text-foreground/50" />
           <span className="flex-1 text-[12px] text-foreground/70">
             {isMulti
-              ? `${answeredCount}/${questions.length} questions answered`
+              ? `已回答 ${answeredCount}/${questions.length} 个问题`
               : q.question}
           </span>
           <button
@@ -389,7 +380,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
             className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             <ChevronsUpDown className="h-3 w-3" />
-            Expand
+            展开
           </button>
         </div>
       </div>
@@ -459,7 +450,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
           {/* Free-text input */}
           <input
             type={q.isSecret ? "password" : "text"}
-            placeholder={hasOptions ? "Or type your own…" : "Type your answer…"}
+            placeholder={hasOptions ? "或输入自定义回答…" : "输入你的回答…"}
             value={freeText[questionKey] ?? ""}
             onChange={(e) => {
               const value = e.target.value;
@@ -490,7 +481,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
             className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
-            Skip
+            跳过
           </Button>
 
           {/* Back button for multi-question sets */}
@@ -502,7 +493,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
               className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-              Back
+              上一步
             </Button>
           )}
 
@@ -525,7 +516,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
               onClick={goNext}
               className="h-7 gap-1 text-xs"
             >
-              Next
+              下一步
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           ) : (
@@ -536,7 +527,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
               className="h-7 gap-1.5 text-xs"
             >
               <Send className="h-3.5 w-3.5" />
-              Answer
+              提交回答
             </Button>
           )}
         </div>
@@ -571,7 +562,7 @@ export function PermissionPrompt({
   }
 
   const label =
-    TOOL_LABELS[request.toolName] ?? `Use tool: ${request.toolName}`;
+    TOOL_LABELS[request.toolName] ?? `使用工具：${request.toolName}`;
   const detail = formatToolDetail(request);
   const isSubmitting = submittingAction !== null;
   const scopeOptions = buildScopeOptions(request.suggestions);
@@ -648,7 +639,7 @@ export function PermissionPrompt({
             className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
-            {submittingAction === "deny" ? "Denying..." : "Deny"}
+            {submittingAction === "deny" ? "正在拒绝…" : "拒绝"}
           </Button>
           {showAcceptForSession && (
             <Button
@@ -660,8 +651,8 @@ export function PermissionPrompt({
             >
               <Check className="h-3.5 w-3.5" />
               {submittingAction === "allowForSession"
-                ? "Allowing..."
-                : "Allow for Session"}
+                ? "正在允许…"
+                : "本次会话内允许"}
             </Button>
           )}
 
@@ -674,7 +665,7 @@ export function PermissionPrompt({
               className={`h-8 gap-1.5 text-xs ${scopeOptions.length > 0 ? "rounded-e-none" : ""}`}
             >
               <Check className="h-3.5 w-3.5" />
-              {submittingAction === "allow" ? "Allowing..." : "Allow"}
+              {submittingAction === "allow" ? "正在允许…" : "允许"}
             </Button>
             {scopeOptions.length > 0 && (
               <DropdownMenu>
@@ -695,7 +686,7 @@ export function PermissionPrompt({
                       className="flex flex-col items-start gap-0.5 py-2"
                     >
                       <span className="text-xs font-medium">
-                        Always allow for {opt.label}
+                        始终允许：{opt.label}
                       </span>
                       <span className="text-[10px] leading-snug text-muted-foreground">
                         {opt.description}

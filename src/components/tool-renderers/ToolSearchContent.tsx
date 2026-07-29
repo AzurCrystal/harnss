@@ -55,7 +55,7 @@ export function ToolSearchContent({ message }: { message: UIMessage }) {
         )}
         <span>{value}</span>
         <span className="text-foreground/25">
-          {mode === "select" ? "direct" : "search"}
+          {mode === "select" ? "直接" : "搜索"}
         </span>
       </div>
 
@@ -78,13 +78,13 @@ export function ToolSearchContent({ message }: { message: UIMessage }) {
         </div>
       ) : (
         <span className="text-[10px] text-foreground/30 italic">
-          No matching tools
+          没有匹配的工具
         </span>
       )}
 
       {/* Pool badge */}
       <span className="text-[10px] text-foreground/25">
-        {matches.length} loaded · {total_deferred_tools} available
+        已加载 {matches.length} 个 · 共 {total_deferred_tools} 个可用
       </span>
     </div>
   );

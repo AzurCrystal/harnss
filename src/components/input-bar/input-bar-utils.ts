@@ -78,6 +78,21 @@ export function stripVoicePlaceholderText(text: string): string {
   return text.replace(BLANK_AUDIO_PLACEHOLDER_RE, "");
 }
 
+export type ComposerKeyAction = "ignore" | "line-break" | "send" | null;
+
+/** Resolve chat composer keys before command/mention pickers handle them. */
+export function getComposerKeyAction(
+  key: string,
+  shiftKey: boolean,
+  isComposing: boolean,
+  keyCode: number,
+): ComposerKeyAction {
+  if (isComposing || keyCode === 229) return "ignore";
+  if (key !== "Enter") return null;
+  return shiftKey ? "line-break" : "send";
+}
+
+
 /** Extract full text + mention paths from a contentEditable element. */
 export function extractEditableContent(el: HTMLElement): {
   text: string;
@@ -160,7 +175,7 @@ export function fuzzyMatch(
 
 export const LOCAL_CLEAR_COMMAND: SlashCommand = {
   name: "clear",
-  description: "Open a new chat without sending anything to the agent",
+  description: "开始新对话，不向智能体发送任何内容",
   argumentHint: "",
   source: "local",
 };
@@ -181,15 +196,8 @@ export function isClearCommandText(text: string): boolean {
 
 export function getSlashCommandReplacement(cmd: SlashCommand): string {
   switch (cmd.source) {
-    case "claude":
-    case "acp":
+    case "omp":
       return `/${cmd.name} `;
-    case "codex-skill":
-      return cmd.defaultPrompt
-        ? `$${cmd.name} ${cmd.defaultPrompt}`
-        : `$${cmd.name} `;
-    case "codex-app":
-      return `$${cmd.appSlug ?? cmd.name} `;
     case "local":
       // Local commands execute directly, so keep the exact command text with no trailing space.
       return `/${cmd.name}`;

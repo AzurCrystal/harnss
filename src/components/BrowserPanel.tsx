@@ -90,8 +90,8 @@ export function BrowserPanel({ persistKey, onElementGrab, headerControls }: Brow
     const tab: BrowserTab = {
       id: crypto.randomUUID(),
       url: url ?? "",
-      title: "New Tab",
-      label: "New Tab",
+      title: "新标签页",
+      label: "新标签页",
       isLoading: !isStartPage,
       colorScheme: getDefaultBrowserColorScheme(),
       isStartPage,
@@ -136,7 +136,7 @@ export function BrowserPanel({ persistKey, onElementGrab, headerControls }: Brow
     setTabs((prev) => prev.map((t) => {
       if (t.id !== tabId) return t;
       const merged = { ...t, ...updates };
-      merged.label = merged.title || "New Tab";
+      merged.label = merged.title || "新标签页";
       return merged;
     }));
   }, []);
@@ -156,7 +156,7 @@ export function BrowserPanel({ persistKey, onElementGrab, headerControls }: Brow
         onCloseTab={closeTab}
         onNewTab={() => createTab()}
         headerIcon={BrowserHeaderIcon}
-        headerLabel="Browser"
+        headerLabel="浏览器"
         renderTabIcon={(tab) =>
           tab.isLoading ? (
             <Loader2 className="h-2.5 w-2.5 animate-spin opacity-50" />

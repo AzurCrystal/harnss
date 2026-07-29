@@ -1,15 +1,21 @@
 import type {
-  ClaudeEvent,
   UIMessage,
   SessionInfo,
   PermissionRequest,
   SlashCommand,
   ContextUsage,
+  ModelInfo,
 } from "@/types";
-import type { ACPSessionEvent, ACPPermissionEvent, CodexSessionEvent } from "@/types";
-import { handleClaudeEvent } from "./claude-handler";
-import { handleACPEvent as acpHandler, handleACPTurnComplete as acpTurnComplete } from "./acp-handler";
-import { handleCodexEvent as codexHandler } from "./codex-handler";
+import {
+  applyOmpFrame,
+  createOmpRuntimeState,
+  markOmpDisconnected,
+  type OmpModel,
+  type OmpRuntimeState,
+} from "@/lib/engine/omp-adapter";
+import type { OmpSessionFrame, OmpThinkingLevel } from "@shared/types/omp";
+import { createSystemMessage } from "@/lib/message-factory";
+import { bgAgentStore } from "./agent-store";
 
 export interface BackgroundSessionState {
   messages: UIMessage[];
@@ -20,108 +26,106 @@ export interface BackgroundSessionState {
   totalCost: number;
   contextUsage: ContextUsage | null;
   pendingPermission: PermissionRequest | null;
-  /** Raw ACP permission event — needed for optionId lookup when responding */
-  rawAcpPermission: ACPPermissionEvent | null;
-  /** Slash commands available for this session (ACP agents update dynamically) */
+  /** Slash commands available for this session (OMP updates dynamically). */
   slashCommands: SlashCommand[];
-}
-
-export interface InternalState extends BackgroundSessionState {
-  parentToolMap: Map<string, string>;
-  currentStreamingMsgId: string | null;
-  /** Accumulated plan text from item/plan/delta events (Codex only). */
-  codexPlanText: string;
-  /** Per-turn counter for unique plan card message IDs (Codex only). */
-  codexPlanTurnCounter: number;
-  /** Active ACP task/subagent — inner tool_calls and text are routed into its card. */
-  activeTask: { msgId: string; toolCallId: string; hasInnerTools: boolean; textBuffer: string } | null;
+  supportedModels?: ModelInfo[];
+  ompModels?: OmpModel[];
+  thinkingLevels?: OmpThinkingLevel[];
+  thinkingLevel?: OmpThinkingLevel;
 }
 
 /** Callback fired when a background session receives a permission request */
 type PermissionRequestCallback = (sessionId: string, permission: PermissionRequest) => void;
 
+function cloneBackgroundState(state: OmpRuntimeState): BackgroundSessionState {
+  return {
+    messages: state.messages.map((message) => ({
+      ...message,
+      ...(message.images ? { images: [...message.images] } : {}),
+      ...(message.subagentSteps
+        ? { subagentSteps: message.subagentSteps.map((step) => ({ ...step })) }
+        : {}),
+    })),
+    isProcessing: state.isProcessing,
+    isConnected: state.isConnected,
+    isCompacting: state.isCompacting,
+    sessionInfo: state.sessionInfo ? { ...state.sessionInfo } : null,
+    totalCost: state.totalCost,
+    contextUsage: state.contextUsage ? { ...state.contextUsage } : null,
+    pendingPermission: state.pendingPermission ? { ...state.pendingPermission } : null,
+    slashCommands: [...state.slashCommands],
+    supportedModels: (state.supportedModels ?? []).map((model) => ({ ...model })),
+    ompModels: (state.ompModels ?? []).map((model) => ({
+      ...model,
+      ...(model.thinkingLevels ? { thinkingLevels: [...model.thinkingLevels] } : {}),
+    })),
+    thinkingLevels: [...(state.thinkingLevels ?? [])],
+    thinkingLevel: state.thinkingLevel,
+  };
+}
+
 /**
- * Accumulates UIMessages for sessions not currently active in useClaude.
+ * Accumulates UIMessages for sessions not currently active in useOMP.
  * Prevents event loss when switching between sessions with ongoing responses.
  */
 export class BackgroundSessionStore {
-  private sessions = new Map<string, InternalState>();
+  private sessions = new Map<string, OmpRuntimeState>();
+  private initializedOmpSessions = new Set<string>();
   onProcessingChange?: (sessionId: string, isProcessing: boolean) => void;
   onPermissionRequest?: PermissionRequestCallback;
 
-  private getOrCreate(sessionId: string): InternalState {
+  private getOrCreate(sessionId: string): OmpRuntimeState {
     let state = this.sessions.get(sessionId);
     if (!state) {
-      state = {
-        messages: [],
-        isProcessing: false,
-        isConnected: false,
-        isCompacting: false,
-        sessionInfo: null,
-        totalCost: 0,
-        contextUsage: null,
-        pendingPermission: null,
-        rawAcpPermission: null,
-        slashCommands: [],
-        parentToolMap: new Map(),
-        currentStreamingMsgId: null,
-        codexPlanText: "",
-        codexPlanTurnCounter: 0,
-        activeTask: null,
-      };
+      state = createOmpRuntimeState();
       this.sessions.set(sessionId, state);
     }
     return state;
   }
 
-  handleEvent(event: ClaudeEvent & { _sessionId?: string }): void {
+  private requestInitialOMPState(sessionId: string): void {
+    if (this.initializedOmpSessions.has(sessionId)) return;
+    this.initializedOmpSessions.add(sessionId);
+    void window.claude.omp.command(sessionId, { type: "set_subagent_subscription", level: "events" });
+    void window.claude.omp.command(sessionId, { type: "get_subagents" });
+    void window.claude.omp.command(sessionId, { type: "get_state" });
+    void window.claude.omp.command(sessionId, { type: "get_available_models" });
+    void window.claude.omp.command(sessionId, { type: "get_available_commands" });
+  }
+
+  /** Handle an official OMP frame for a session that is not currently mounted. */
+  handleOMPEvent(event: OmpSessionFrame): void {
     const sessionId = event._sessionId;
     if (!sessionId) return;
-
+    if (event.type === "ready") this.requestInitialOMPState(sessionId);
+    bgAgentStore.handleOmpFrame(event);
     const state = this.getOrCreate(sessionId);
-    const result = handleClaudeEvent(state, event);
-    if (result?.processingChanged) {
-      this.onProcessingChange?.(sessionId, result.isProcessing);
+    const result = applyOmpFrame(state, event, {
+      cwd: state.sessionInfo?.cwd,
+      logicalSessionId: sessionId,
+    });
+    if (result.processingChanged) {
+      this.onProcessingChange?.(sessionId, state.isProcessing);
+    }
+    if (result.permissionRequested) {
+      this.onPermissionRequest?.(sessionId, result.permissionRequested);
     }
   }
 
-  handleACPEvent(event: ACPSessionEvent): void {
-    const sessionId = event._sessionId;
-    if (!sessionId) return;
-
-    const state = this.getOrCreate(sessionId);
-    acpHandler(state, event);
+  /** Preserve OMP stderr emitted while the session is inactive. */
+  handleOMPStderr(sessionId: string, data: string): void {
+    if (!data) return;
+    this.getOrCreate(sessionId).messages.push(createSystemMessage(data, true));
   }
 
-  /** Handle ACP turn completion — finalize streaming, close tools, reset processing. */
-  handleACPTurnComplete(sessionId: string): void {
+  /** Finalize an inactive OMP session after its process exits. */
+  markOMPDisconnected(sessionId: string, error?: string): void {
+    this.initializedOmpSessions.delete(sessionId);
     const state = this.sessions.get(sessionId);
     if (!state) return;
-    acpTurnComplete(state);
-    this.onProcessingChange?.(sessionId, false);
-  }
-
-  /** Handle a Codex notification for a background (non-active) session. */
-  handleCodexEvent(event: CodexSessionEvent): void {
-    const sessionId = event._sessionId;
-    if (!sessionId) return;
-
-    const state = this.getOrCreate(sessionId);
-    const result = codexHandler(state, event);
-    if (result?.processingChanged) {
-      this.onProcessingChange?.(sessionId, result.isProcessing!);
-    }
-    if (result?.permissionRequest) {
-      this.onPermissionRequest?.(sessionId, result.permissionRequest);
-    }
-  }
-
-  /** Store a pending permission for a background session and fire the callback. */
-  setPermission(sessionId: string, permission: PermissionRequest, rawAcpPermission?: ACPPermissionEvent | null): void {
-    const state = this.getOrCreate(sessionId);
-    state.pendingPermission = permission;
-    state.rawAcpPermission = rawAcpPermission ?? null;
-    this.onPermissionRequest?.(sessionId, permission);
+    const wasProcessing = state.isProcessing;
+    markOmpDisconnected(state, error);
+    if (wasProcessing) this.onProcessingChange?.(sessionId, false);
   }
 
   has(sessionId: string): boolean {
@@ -131,25 +135,12 @@ export class BackgroundSessionStore {
   get(sessionId: string): BackgroundSessionState | undefined {
     const state = this.sessions.get(sessionId);
     if (!state) return undefined;
-    // Clone messages to prevent external mutation of internal state
-    return {
-      messages: state.messages.map(m => ({ ...m })),
-      isProcessing: state.isProcessing,
-      isConnected: state.isConnected,
-      isCompacting: state.isCompacting,
-      sessionInfo: state.sessionInfo ? { ...state.sessionInfo } : null,
-      totalCost: state.totalCost,
-      contextUsage: state.contextUsage ? { ...state.contextUsage } : null,
-      pendingPermission: state.pendingPermission ? { ...state.pendingPermission } : null,
-      rawAcpPermission: state.rawAcpPermission,
-      slashCommands: state.slashCommands ?? [],
-    };
+    return cloneBackgroundState(state);
   }
 
   consume(sessionId: string): BackgroundSessionState | undefined {
     const state = this.sessions.get(sessionId);
     if (!state) return undefined;
-    // Transfer ownership — no clone needed since we delete the store entry
     this.sessions.delete(sessionId);
     return {
       messages: state.messages,
@@ -160,13 +151,17 @@ export class BackgroundSessionStore {
       totalCost: state.totalCost,
       contextUsage: state.contextUsage,
       pendingPermission: state.pendingPermission,
-      rawAcpPermission: state.rawAcpPermission,
-      slashCommands: state.slashCommands ?? [],
+      slashCommands: state.slashCommands,
+      supportedModels: state.supportedModels,
+      ompModels: state.ompModels,
+      thinkingLevels: state.thinkingLevels,
+      thinkingLevel: state.thinkingLevel,
     };
   }
 
   delete(sessionId: string): void {
     this.sessions.delete(sessionId);
+    this.initializedOmpSessions.delete(sessionId);
   }
 
   updateMessages(sessionId: string, updater: (messages: UIMessage[]) => UIMessage[]): void {
@@ -184,86 +179,20 @@ export class BackgroundSessionStore {
 
   /** Seed store with the current session state when switching away. */
   initFromState(sessionId: string, state: BackgroundSessionState): void {
-    const parentToolMap = new Map<string, string>();
-    // The active view treats message arrays immutably, so we can reuse the
-    // existing objects here and avoid an O(n) clone on every session switch.
-    const messages = state.messages;
-    let codexPlanTurnCounter = 0;
-    let latestPlanStreamTurn = -1;
-    let latestPlanStreamMsg: UIMessage | undefined;
-    let streamingMsg: UIMessage | undefined;
-
-    for (const msg of messages) {
-      if (msg.role === "tool_call" && msg.subagentSteps !== undefined) {
-        const toolUseId = msg.id.replace(/^tool-/, "");
-        parentToolMap.set(toolUseId, msg.id);
-      }
-      // Reconstruct Codex in-flight tool mappings from deterministic IDs
-      if (msg.role === "tool_call" && msg.id.startsWith("codex-tool-") && !msg.toolResult && !msg.toolError) {
-        const itemId = msg.id.replace("codex-tool-", "");
-        parentToolMap.set(itemId, msg.id);
-      }
-      if (msg.id.startsWith("codex-plan-update-")) {
-        const num = parseInt(msg.id.replace("codex-plan-update-", ""), 10);
-        if (!isNaN(num) && num >= codexPlanTurnCounter) codexPlanTurnCounter = num;
-      }
-      if (msg.id.startsWith("codex-plan-stream-")) {
-        const num = parseInt(msg.id.replace("codex-plan-stream-", ""), 10);
-        if (!isNaN(num) && num >= codexPlanTurnCounter) codexPlanTurnCounter = num;
-        if (!isNaN(num) && num >= latestPlanStreamTurn) {
-          latestPlanStreamTurn = num;
-          latestPlanStreamMsg = msg;
-        }
-      }
-      if (msg.role === "assistant" && msg.isStreaming) {
-        streamingMsg = msg;
-      }
-    }
-
-    // Backward compatibility with older persisted sessions
-    if (!latestPlanStreamMsg) {
-      latestPlanStreamMsg = messages.find(m => m.id === "codex-plan-stream");
-    }
-
-    const planInput = latestPlanStreamMsg?.toolInput as { plan?: string } | undefined;
-    const codexPlanText = planInput?.plan ?? "";
-
-    this.sessions.set(sessionId, {
-      messages,
+    this.sessions.set(sessionId, createOmpRuntimeState({
+      messages: state.messages,
       isProcessing: state.isProcessing,
       isConnected: state.isConnected,
-      isCompacting: state.isCompacting ?? false,
-      sessionInfo: state.sessionInfo ? { ...state.sessionInfo } : null,
+      isCompacting: state.isCompacting,
+      sessionInfo: state.sessionInfo,
       totalCost: state.totalCost,
-      contextUsage: state.contextUsage ? { ...state.contextUsage } : null,
-      pendingPermission: state.pendingPermission ? { ...state.pendingPermission } : null,
-      rawAcpPermission: state.rawAcpPermission ?? null,
-      slashCommands: state.slashCommands ?? [],
-      parentToolMap,
-      currentStreamingMsgId: streamingMsg?.id ?? null,
-      codexPlanText,
-      codexPlanTurnCounter,
-      activeTask: null,
-    });
-  }
-
-  /** Mark a session as disconnected (process exited). */
-  markDisconnected(sessionId: string): void {
-    const state = this.sessions.get(sessionId);
-    if (!state) return;
-    state.isConnected = false;
-    state.isCompacting = false;
-    // Dead process = dead permission — clear both
-    state.pendingPermission = null;
-    state.rawAcpPermission = null;
-    if (state.isProcessing) {
-      state.isProcessing = false;
-      this.onProcessingChange?.(sessionId, false);
-    }
-    for (const msg of state.messages) {
-      if (msg.isStreaming) {
-        msg.isStreaming = false;
-      }
-    }
+      contextUsage: state.contextUsage,
+      pendingPermission: state.pendingPermission,
+      slashCommands: state.slashCommands,
+      supportedModels: state.supportedModels,
+      ompModels: state.ompModels,
+      thinkingLevels: state.thinkingLevels,
+      thinkingLevel: state.thinkingLevel,
+    }));
   }
 }

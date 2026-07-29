@@ -190,7 +190,7 @@ export const MessageBubble = memo(function MessageBubble({
   // All hooks must be called before any early returns (Rules of Hooks)
   const isUser = message.role === "user";
   const [viewingImage, setViewingImage] = useState<ImageAttachment | null>(null);
-  const time = useMemo(() => new Date(message.timestamp).toLocaleTimeString(), [message.timestamp]);
+  const time = useMemo(() => new Date(message.timestamp).toLocaleTimeString("zh-CN"), [message.timestamp]);
   const displayContent = useMemo(() => isUser ? (message.displayContent ?? stripFileContext(message.content)) : message.content, [isUser, message.content, message.displayContent]);
 
   // Per-token fade-in animation via DOM surgery in useLayoutEffect.
@@ -235,7 +235,7 @@ export const MessageBubble = memo(function MessageBubble({
                       <img
                         key={img.id}
                         src={`data:${img.mediaType};base64,${img.data}`}
-                        alt={img.fileName ?? "attached image"}
+                        alt={img.fileName ?? "附件图片"}
                         className="max-h-48 cursor-pointer rounded-lg transition-opacity hover:opacity-90"
                         onClick={() => setViewingImage(img)}
                       />
@@ -251,7 +251,7 @@ export const MessageBubble = memo(function MessageBubble({
                 {message.isQueued && (
                   <div className="mt-2 flex items-center gap-2 border-t border-foreground/[0.06] pt-2 text-[11px] text-muted-foreground">
                     <Clock className="h-3 w-3 shrink-0" />
-                    <span>Queued</span>
+                    <span>排队中</span>
                     {(onSendQueuedNow || onUnqueueQueued) && (
                       <div className="ms-auto flex items-center gap-1">
                         {onSendQueuedNow && (
@@ -266,7 +266,7 @@ export const MessageBubble = memo(function MessageBubble({
                             onClick={() => onSendQueuedNow(message.id)}
                           >
                             <Send className="h-2.5 w-2.5" />
-                            Send next
+                            优先发送
                           </button>
                         )}
                         {onUnqueueQueued && (
@@ -276,7 +276,7 @@ export const MessageBubble = memo(function MessageBubble({
                             onClick={() => onUnqueueQueued(message.id)}
                           >
                             <X className="h-2.5 w-2.5" />
-                            Unqueue
+                            取消排队
                           </button>
                         )}
                       </div>
@@ -296,20 +296,20 @@ export const MessageBubble = memo(function MessageBubble({
                 <DropdownMenuTrigger asChild>
                   <button className="pointer-events-auto flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] text-foreground/30 transition-colors hover:text-foreground/60">
                     <Undo2 className="h-3 w-3" />
-                    Revert to here
+                    回退到此处
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {onRevert && (
                     <DropdownMenuItem onClick={() => onRevert(checkpointId)}>
                       <Undo2 className="h-3.5 w-3.5 me-2" />
-                      Revert files only
+                      仅回退文件
                     </DropdownMenuItem>
                   )}
                   {onFullRevert && (
                     <DropdownMenuItem onClick={() => onFullRevert(checkpointId)}>
                       <RotateCcw className="h-3.5 w-3.5 me-2" />
-                      Revert files + chat
+                      回退文件和对话
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

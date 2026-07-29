@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
+import path from "path";
 
 // ---------------------------------------------------------------------------
 // vi.hoisted — these run BEFORE vi.mock factories (which are hoisted to top).
@@ -274,7 +275,7 @@ describe("findUpdateZip", () => {
     ]);
 
     const result = findUpdateZip();
-    expect(result).toBe(`${cacheDir}/Harnss-0.12.1-arm64-mac.zip`);
+    expect(result).toBe(path.join(cacheDir, "Harnss-0.12.1-arm64-mac.zip"));
   });
 
   it("falls back to newest ZIP when no version match", () => {
@@ -288,7 +289,7 @@ describe("findUpdateZip", () => {
     }));
 
     const result = findUpdateZip();
-    expect(result).toBe(`${cacheDir}/Harnss-0.11.0-arm64-mac.zip`);
+    expect(result).toBe(path.join(cacheDir, "Harnss-0.11.0-arm64-mac.zip"));
   });
 
   it("ignores temp-prefixed files in fallback", () => {
@@ -300,7 +301,7 @@ describe("findUpdateZip", () => {
     (fs.statSync as Mock).mockReturnValue({ mtimeMs: 1000 });
 
     const result = findUpdateZip();
-    expect(result).toBe(`${cacheDir}/Harnss-0.11.0-arm64-mac.zip`);
+    expect(result).toBe(path.join(cacheDir, "Harnss-0.11.0-arm64-mac.zip"));
   });
 
   it("ignores non-mac.zip files", () => {
@@ -565,7 +566,7 @@ describe("initAutoUpdater", () => {
       expect(mockWebContents.send).toHaveBeenCalledWith(
         "updater:install-error",
         expect.objectContaining({
-          message: expect.stringContaining("failed to download"),
+          message: expect.stringContaining("更新下载失败"),
         }),
       );
       expect(mockAutoUpdater.quitAndInstall).not.toHaveBeenCalled();
@@ -650,7 +651,7 @@ describe("initAutoUpdater", () => {
       expect(mockWebContents.send).toHaveBeenCalledWith(
         "updater:install-error",
         expect.objectContaining({
-          message: expect.stringContaining("install manually"),
+          message: expect.stringContaining("手动安装"),
         }),
       );
     });
@@ -838,7 +839,7 @@ describe("initAutoUpdater", () => {
       expect(mockWebContents.send).toHaveBeenCalledWith(
         "updater:install-error",
         expect.objectContaining({
-          message: expect.stringContaining("install manually"),
+          message: expect.stringContaining("手动安装"),
         }),
       );
     });

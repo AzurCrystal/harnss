@@ -31,17 +31,13 @@ export const Field = React.memo(function Field({
 export const McpListHeader = React.memo(function McpListHeader({
   count,
   noun,
-  plural,
 }: {
   count: number;
   noun: string;
-  /** Override for irregular plurals (e.g., "libraries"). Defaults to `noun + "s"`. */
-  plural?: string;
 }) {
-  const label = count === 1 ? noun : (plural ?? `${noun}s`);
   return (
     <span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium block mb-1.5">
-      {count} {label}
+      {count} 个{noun}
     </span>
   );
 });

@@ -81,7 +81,7 @@ export const JiraIssueCard = React.memo(function JiraIssueCard({
 
       {/* Meta row */}
       <div className="mb-3 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-        <span className="truncate">{issue.assignee?.displayName ?? "Unassigned"}</span>
+        <span className="truncate">{issue.assignee?.displayName ?? "未分配"}</span>
         <span className="truncate">{issue.status}</span>
       </div>
 
@@ -90,7 +90,7 @@ export const JiraIssueCard = React.memo(function JiraIssueCard({
         {canCreateTask && (
           <Button size="sm" onClick={() => onCreateTask(projectId, issue)} className="h-7 flex-1 text-xs">
             <Plus className="w-3 h-3 me-1" />
-            Create Task
+            创建任务
           </Button>
         )}
         <Button

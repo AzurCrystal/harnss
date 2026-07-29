@@ -22,9 +22,9 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ChatFolder, ChatSession, InstalledAgent } from "@/types";
+import type { ChatFolder, ChatSession } from "@/types";
 import { AgentIcon } from "@/components/AgentIcon";
-import { getSessionEngineIcon } from "@/lib/engine-icons";
+import { OMP_ENGINE_ICON } from "@/lib/engine-icons";
 import {
   writeSidebarDragPayload,
   clearSidebarDragPayload,
@@ -40,7 +40,6 @@ export function SessionItem({
   onPinToggle,
   folders,
   onMoveToFolder,
-  agents,
   onOpenInSplitView,
   canOpenInSplitView = true,
 }: {
@@ -56,7 +55,6 @@ export function SessionItem({
   folders?: ChatFolder[];
   /** Move session to a folder (null = remove from folder). */
   onMoveToFolder?: (folderId: string | null) => void;
-  agents?: InstalledAgent[];
   /** Open this session in the split view secondary pane. */
   onOpenInSplitView?: () => void;
   canOpenInSplitView?: boolean;
@@ -136,7 +134,7 @@ export function SessionItem({
         ) : (
           <span className="relative flex shrink-0 items-center">
             <AgentIcon
-              icon={getSessionEngineIcon(session.engine, session.agentId, agents)}
+              icon={OMP_ENGINE_ICON}
               size={12}
               className={`shrink-0 ${isActive ? "opacity-80" : "opacity-50"}`}
             />
@@ -153,7 +151,7 @@ export function SessionItem({
                 : "text-sidebar-foreground/60 italic"
             }
           >
-            Generating title...
+            正在生成标题…
           </span>
         ) : (
           <span className="min-w-0 truncate">{session.title}</span>
@@ -182,12 +180,12 @@ export function SessionItem({
               {session.pinned ? (
                 <>
                   <PinOff className="me-2 h-3.5 w-3.5" />
-                  Unpin
+                  取消置顶
                 </>
               ) : (
                 <>
                   <Pin className="me-2 h-3.5 w-3.5" />
-                  Pin
+                  置顶
                 </>
               )}
             </DropdownMenuItem>
@@ -198,13 +196,13 @@ export function SessionItem({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <FolderInput className="me-2 h-3.5 w-3.5" />
-                Move to folder
+                移动到文件夹
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44">
                 {session.folderId && (
                   <DropdownMenuItem onClick={() => onMoveToFolder(null)}>
                     <FolderMinus className="me-2 h-3.5 w-3.5" />
-                    Remove from folder
+                    移出文件夹
                   </DropdownMenuItem>
                 )}
                 {folders
@@ -227,20 +225,20 @@ export function SessionItem({
           {onOpenInSplitView && canOpenInSplitView && (
             <DropdownMenuItem onClick={onOpenInSplitView}>
               <Columns2 className="me-2 h-3.5 w-3.5" />
-              Open in Split View
+              在分屏中打开
             </DropdownMenuItem>
           )}
 
           <DropdownMenuItem onClick={startEditing}>
             <Pencil className="me-2 h-3.5 w-3.5" />
-            Rename
+            重命名
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onClick={onDelete}
           >
             <Trash2 className="me-2 h-3.5 w-3.5" />
-            Delete
+            删除
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

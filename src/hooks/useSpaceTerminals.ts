@@ -92,7 +92,7 @@ export function useSpaceTerminals() {
       const tab: TerminalTab = {
         id: terminalId,
         terminalId,
-        label: `Terminal ${curr.tabs.length + 1}`,
+        label: `终端 ${curr.tabs.length + 1}`,
       };
       return {
         ...prev,

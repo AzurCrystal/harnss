@@ -42,17 +42,17 @@ export function FileItem({
       {/* Hover actions */}
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {onDiscard && (
-          <button type="button" onClick={() => onDiscard(file)} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer transition-colors" title="Discard">
+          <button type="button" onClick={() => onDiscard(file)} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 cursor-pointer transition-colors" title="放弃更改">
             <Undo2 className="h-2.5 w-2.5" />
           </button>
         )}
         {onStage && (
-          <button type="button" onClick={() => onStage(file)} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-300 cursor-pointer transition-colors" title="Stage">
+          <button type="button" onClick={() => onStage(file)} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-300 cursor-pointer transition-colors" title="暂存">
             <Plus className="h-3 w-3" />
           </button>
         )}
         {onUnstage && (
-          <button type="button" onClick={() => onUnstage(file)} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-300 cursor-pointer transition-colors" title="Unstage">
+          <button type="button" onClick={() => onUnstage(file)} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-300 cursor-pointer transition-colors" title="取消暂存">
             <Minus className="h-3 w-3" />
           </button>
         )}

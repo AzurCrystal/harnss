@@ -68,33 +68,33 @@ export const AppearanceSettings = memo(function AppearanceSettings({
 
   return (
     <div className="flex h-full flex-col">
-      <SettingsHeader title="Appearance" description="Customize the look and feel of the interface" />
+      <SettingsHeader title="外观" description="自定义界面的外观与质感" />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-6 py-2">
           {/* ── Theme section ── */}
-          <SettingsSection icon={SunMoon} label="Theme" first>
+          <SettingsSection icon={SunMoon} label="主题" first>
             <SettingRow
-              label="Color theme"
-              description="Choose between light and dark appearance, or follow your system setting."
+              label="颜色主题"
+              description="选择浅色或深色外观，或跟随系统设置。"
             >
               <SettingsSelect
                 value={theme}
                 onValueChange={onThemeChange}
                 options={[
-                  { value: "dark", label: "Dark" },
-                  { value: "light", label: "Light" },
-                  { value: "system", label: "System" },
+                  { value: "dark", label: "深色" },
+                  { value: "light", label: "浅色" },
+                  { value: "system", label: "跟随系统" },
                 ]}
               />
             </SettingRow>
           </SettingsSection>
 
           {/* ── Tools section ── */}
-          <SettingsSection icon={Wrench} label="Tools">
+          <SettingsSection icon={Wrench} label="工具">
             <SettingRow
-              label="Auto-group tools"
-              description="Collapse consecutive tool calls into a single group. Disable to keep every tool call and in-between thinking row visible on its own."
+              label="自动分组工具调用"
+              description="将连续的工具调用折叠为一个分组。关闭后，每个工具调用和中间的思考行都会单独显示。"
             >
               <Switch
                 checked={autoGroupTools}
@@ -103,8 +103,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Avoid grouping edits"
-              description="Treat Edit and Write tool calls as standalone rows, even when auto-grouping is enabled. Reads before and after an edit will form separate groups."
+              label="编辑类调用不参与分组"
+              description="即使开启自动分组，Edit 和 Write 工具调用也始终单独成行。编辑前后的 Read 调用会各自形成独立分组。"
             >
               <Switch
                 checked={avoidGroupingEdits}
@@ -114,8 +114,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Auto-expand tool results"
-              description="Temporarily expand completed tool calls, then collapse them again after a short delay. Disable to keep tool rows stable unless you open them yourself."
+              label="自动展开工具结果"
+              description="已完成的工具调用会暂时展开，稍候自动折叠。关闭后，工具行保持折叠状态，除非你手动展开。"
             >
               <Switch
                 checked={autoExpandTools}
@@ -124,8 +124,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Expand Edit and Write tools by default"
-              description="Start Edit and Write tool calls open when they appear. Disable to keep them collapsed until you open them."
+              label="默认展开 Edit 和 Write 工具"
+              description="Edit 和 Write 工具调用出现时默认保持展开。关闭后，它们会保持折叠，直到你手动展开。"
             >
               <Switch
                 checked={expandEditToolCallsByDefault}
@@ -134,8 +134,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Show tool icons"
-              description="Display icons next to tool call labels. Disable for a text-only view."
+              label="显示工具图标"
+              description="在工具调用标签旁显示图标。关闭后仅显示文字。"
             >
               <Switch
                 checked={showToolIcons}
@@ -144,8 +144,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Colored tool icons"
-              description="Tint tool call icons with per-tool colors. Disable for monochrome icons."
+              label="彩色工具图标"
+              description="按工具类型为工具图标着色。关闭后图标为单色。"
             >
               <Switch
                 checked={coloredToolIcons}
@@ -156,11 +156,11 @@ export const AppearanceSettings = memo(function AppearanceSettings({
           </SettingsSection>
 
           {/* ── Layout section ── */}
-          <SettingsSection icon={Layout} label="Layout">
+          <SettingsSection icon={Layout} label="布局">
             <div className="py-3">
-              <p className="text-sm font-medium text-foreground">Window layout</p>
+              <p className="text-sm font-medium text-foreground">窗口布局</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Choose how panels are arranged in the window.
+                选择窗口中面板的排列方式。
               </p>
               <div className="mt-3 flex gap-3">
                 {/* ── Island preview ── */}
@@ -198,7 +198,7 @@ export const AppearanceSettings = memo(function AppearanceSettings({
                   <p className={`mt-2 text-center text-xs font-medium ${
                     islandLayout ? "text-primary" : "text-muted-foreground"
                   }`}>
-                    Islands
+                    岛屿
                   </p>
                 </button>
 
@@ -244,15 +244,15 @@ export const AppearanceSettings = memo(function AppearanceSettings({
                   <p className={`mt-2 text-center text-xs font-medium ${
                     !islandLayout ? "text-primary" : "text-muted-foreground"
                   }`}>
-                    Flat
+                    平铺
                   </p>
                 </button>
               </div>
             </div>
 
             <SettingRow
-              label="Colored sidebar icons"
-              description="Tint tool picker and panel header icons with per-tool colors. Disable for neutral monochrome icons."
+              label="彩色侧边栏图标"
+              description="按工具类型为工具选择器和面板标题栏图标着色。关闭后图标为中性单色。"
             >
               <Switch
                 checked={coloredSidebarIcons}
@@ -261,8 +261,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Island border shine"
-              description="Show a subtle diagonal reflection on island panel borders. Only visible in island layout mode."
+              label="岛屿边框光泽"
+              description="在岛屿面板边框上显示细腻的对角反光。仅在岛屿布局模式下可见。"
             >
               <Switch
                 checked={islandShine}
@@ -273,20 +273,20 @@ export const AppearanceSettings = memo(function AppearanceSettings({
           </SettingsSection>
 
           {/* ── Transparency section ── */}
-          <SettingsSection icon={Blend} label="Transparency">
+          <SettingsSection icon={Blend} label="透明度">
             <SettingRow
-              label={isMac ? "Window background effect" : "Window transparency"}
+              label={isMac ? "窗口背景效果" : "窗口透明度"}
               description={
                 isMac
                   ? (
                     macLiquidGlassSupported
-                      ? "Choose the native macOS background material. Blur Off keeps the window opaque, while switching from Liquid Glass to Vibrancy needs a restart."
-                      : "Choose the native macOS background material. Liquid Glass is unavailable on this Mac, so Vibrancy and Off are available."
+                      ? "选择 macOS 原生背景材质。“关闭模糊”会保持窗口不透明；从 Liquid Glass 切换到 Vibrancy 需要重启。"
+                      : "选择 macOS 原生背景材质。此 Mac 不支持 Liquid Glass，可选择 Vibrancy 或“关闭”。"
                   )
                   : (
                     glassSupported
-                      ? "Allow the desktop to show through the window background. Uses Mica on Windows when enabled."
-                      : "Window transparency is not available on this platform."
+                      ? "让桌面透过窗口背景显示。在 Windows 上启用后使用 Mica 材质。"
+                      : "当前平台不支持窗口透明度。"
                   )
               }
             >
@@ -299,7 +299,7 @@ export const AppearanceSettings = memo(function AppearanceSettings({
                       ? [{ value: "liquid-glass" as const, label: "Liquid Glass" }]
                       : []),
                     { value: "vibrancy", label: "Vibrancy" },
-                    { value: "off", label: "Blur Off" },
+                    { value: "off", label: "关闭模糊" },
                   ]}
                   className="min-w-[9.5rem]"
                 />
@@ -313,8 +313,8 @@ export const AppearanceSettings = memo(function AppearanceSettings({
             </SettingRow>
 
             <SettingRow
-              label="Transparent tool picker"
-              description="Remove the background from the right-side tool picker strip so icons float directly over the window."
+              label="透明工具选择器"
+              description="移除右侧工具选择器栏的背景，让图标直接悬浮在窗口之上。"
             >
               <Switch
                 checked={transparentToolPicker}

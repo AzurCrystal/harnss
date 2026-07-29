@@ -1,8 +1,8 @@
 export function InlineDiff({ diff }: { diff: string }) {
-  if (!diff || diff === "(no diff available)") {
+  if (!diff || diff === "（无可用差异）") {
     return (
       <div className="mb-1 border border-foreground/[0.06] bg-foreground/[0.02] px-3 py-1.5 text-[10px] text-foreground/35 italic">
-        No diff available
+        无可用差异
       </div>
     );
   }

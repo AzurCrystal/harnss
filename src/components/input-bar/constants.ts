@@ -18,18 +18,18 @@ export type AcceptedMediaType = (typeof ACCEPTED_IMAGE_TYPES)[number];
 export const ACP_PERMISSION_BEHAVIORS = [
   {
     id: "ask" as const,
-    label: "Ask",
-    description: "Show permission prompt",
+    label: "询问",
+    description: "显示权限提示",
   },
   {
     id: "auto_accept" as const,
-    label: "Auto Accept",
-    description: "Auto-approve each tool call",
+    label: "自动接受",
+    description: "自动批准每次工具调用",
   },
   {
     id: "allow_all" as const,
-    label: "Allow All",
-    description: "Auto-approve with always-allow",
+    label: "全部允许",
+    description: "自动批准并始终允许",
   },
 ] as const satisfies ReadonlyArray<{
   id: AcpPermissionBehavior;
@@ -38,9 +38,9 @@ export const ACP_PERMISSION_BEHAVIORS = [
 }>;
 
 export const PERMISSION_MODES = [
-  { id: "default", label: "Ask Before Edits" },
-  { id: "acceptEdits", label: "Accept Edits" },
-  { id: "bypassPermissions", label: "Allow All" },
+  { id: "default", label: "编辑前询问" },
+  { id: "acceptEdits", label: "接受编辑" },
+  { id: "bypassPermissions", label: "全部允许" },
 ] as const;
 
 export const CODEX_PERMISSION_MODE_DETAILS: Record<
@@ -49,15 +49,15 @@ export const CODEX_PERMISSION_MODE_DETAILS: Record<
 > = {
   default: {
     policy: "on-request",
-    description: "Prompt before commands and file edits",
+    description: "执行命令和文件编辑前进行提示",
   },
   acceptEdits: {
     policy: "untrusted",
     description:
-      "Auto-approve trusted edits; prompt for untrusted actions",
+      "自动批准可信编辑；不可信操作需确认",
   },
   bypassPermissions: {
     policy: "never",
-    description: "No approval prompts",
+    description: "不显示审批提示",
   },
 };

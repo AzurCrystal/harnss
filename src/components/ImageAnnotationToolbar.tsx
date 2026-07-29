@@ -32,14 +32,14 @@ interface ImageAnnotationToolbarProps {
 }
 
 const TOOLS: Array<{ tool: AnnotationTool; icon: React.ElementType; label: string }> = [
-  { tool: "select", icon: MousePointer2, label: "Select" },
-  { tool: "freehand", icon: Pencil, label: "Freehand" },
-  { tool: "rectangle", icon: Square, label: "Rectangle" },
-  { tool: "circle", icon: Circle, label: "Circle" },
-  { tool: "arrow", icon: MoveUpRight, label: "Arrow" },
-  { tool: "text", icon: Type, label: "Text" },
-  { tool: "highlight", icon: Highlighter, label: "Highlight" },
-  { tool: "eraser", icon: Eraser, label: "Eraser" },
+  { tool: "select", icon: MousePointer2, label: "选择" },
+  { tool: "freehand", icon: Pencil, label: "手绘" },
+  { tool: "rectangle", icon: Square, label: "矩形" },
+  { tool: "circle", icon: Circle, label: "圆形" },
+  { tool: "arrow", icon: MoveUpRight, label: "箭头" },
+  { tool: "text", icon: Type, label: "文字" },
+  { tool: "highlight", icon: Highlighter, label: "高亮" },
+  { tool: "eraser", icon: Eraser, label: "橡皮擦" },
 ];
 
 export const ImageAnnotationToolbar = React.memo(function ImageAnnotationToolbar({
@@ -96,7 +96,7 @@ export const ImageAnnotationToolbar = React.memo(function ImageAnnotationToolbar
               </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p className="text-xs">Color</p>
+              <p className="text-xs">颜色</p>
             </TooltipContent>
           </Tooltip>
           <PopoverContent className="w-auto p-2" side="bottom" align="start">
@@ -119,7 +119,7 @@ export const ImageAnnotationToolbar = React.memo(function ImageAnnotationToolbar
                 onChange={(e) => onStrokeColorChange(e.target.value)}
                 className="h-6 w-6 cursor-pointer rounded border-none bg-transparent p-0"
               />
-              <span className="text-xs text-muted-foreground">Custom</span>
+              <span className="text-xs text-muted-foreground">自定义</span>
             </div>
           </PopoverContent>
         </Popover>
@@ -144,12 +144,12 @@ export const ImageAnnotationToolbar = React.memo(function ImageAnnotationToolbar
               </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p className="text-xs">Stroke width: {strokeWidth}px</p>
+              <p className="text-xs">线宽：{strokeWidth}px</p>
             </TooltipContent>
           </Tooltip>
           <PopoverContent className="w-44 p-3" side="bottom" align="start">
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Stroke width</p>
+              <p className="text-xs text-muted-foreground">线宽</p>
               <Slider
                 min={1}
                 max={12}
@@ -173,7 +173,7 @@ export const ImageAnnotationToolbar = React.memo(function ImageAnnotationToolbar
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p className="text-xs">Undo</p>
+            <p className="text-xs">撤销</p>
           </TooltipContent>
         </Tooltip>
         <Tooltip>
@@ -183,7 +183,7 @@ export const ImageAnnotationToolbar = React.memo(function ImageAnnotationToolbar
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p className="text-xs">Redo</p>
+            <p className="text-xs">重做</p>
           </TooltipContent>
         </Tooltip>
       </div>

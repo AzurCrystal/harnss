@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { ToolId } from "@/types/tools";
 import type { AcpPermissionBehavior, ClaudeEffort, EngineId, MacBackgroundEffect, ThemeOption } from "@/types";
+type PersistedModelEngine = EngineId | "claude" | "acp" | "codex";
 
 // ── Constants ──
 
@@ -9,7 +10,8 @@ const DEFAULT_MODEL = "default";
 const DEFAULT_PERMISSION_MODE = "default";
 const DEFAULT_PLAN_MODE = true;
 const DEFAULT_CLAUDE_EFFORT: ClaudeEffort = "high";
-export const DEFAULT_ENGINE_MODELS: Record<EngineId, string> = {
+export const DEFAULT_ENGINE_MODELS: Record<PersistedModelEngine, string> = {
+  omp: DEFAULT_MODEL,
   claude: DEFAULT_MODEL,
   acp: "",
   codex: "",
@@ -61,8 +63,8 @@ export function normalizeRatios(ratios: number[], count: number, min = 0.1): num
 
 /** Per-project settings keyed by projectId */
 export interface ProjectSettings {
-  /** Per-engine model selections (claude, acp, codex) */
-  modelsByEngine: Record<EngineId, string>;
+  /** Per-engine model selections, including preserved legacy backend values. */
+  modelsByEngine: Record<PersistedModelEngine, string>;
   /** Git working directory override */
   gitCwd: string | null;
   /** Active tool panels (serialized as array for persistence, exposed as Set) */
@@ -215,7 +217,7 @@ function migrateFromLegacyLocalStorage(): { global: GlobalSettingsState; project
     // Per-project keys follow the pattern: harnss-{projectId}-{setting}
     // We detect project keys by checking for known per-project suffixes.
     const perProjectSuffixes = [
-      "-model-claude", "-model-acp", "-model-codex", "-model",
+      "-model-omp", "-model-claude", "-model-acp", "-model-codex", "-model",
       "-git-cwd", "-active-tools", "-tool-order",
       "-right-panel-width", "-right-split",
       "-collapsed-repos", "-suppressed-panels",
@@ -325,7 +327,7 @@ function isCodexLikeModel(model: string): boolean {
   return /^gpt[-\w.]*$/i.test(normalized) || /^o[0-9][\w.-]*$/i.test(normalized);
 }
 
-function readLegacyModelForEngine(pid: string, engine: EngineId): string {
+function readLegacyModelForEngine(pid: string, engine: PersistedModelEngine): string {
   const byEngine = localStorage.getItem(`harnss-${pid}-model-${engine}`);
   if (byEngine && byEngine.trim().length > 0) return byEngine.trim();
 
@@ -356,6 +358,7 @@ function readLegacyToolOrder(pid: string): ToolId[] {
 function readLegacyProjectSettings(pid: string): ProjectSettings {
   return {
     modelsByEngine: {
+      omp: readLegacyModelForEngine(pid, "omp"),
       claude: readLegacyModelForEngine(pid, "claude"),
       acp: readLegacyModelForEngine(pid, "acp"),
       codex: readLegacyModelForEngine(pid, "codex"),

@@ -115,7 +115,7 @@ async function runWorktreeSetup(
 /** Validate that a user-provided git ref doesn't look like a flag to prevent argument injection. */
 function validateRef(ref: string): void {
   if (ref.startsWith("-")) {
-    throw new Error(`Invalid ref: "${ref}" — must not start with a dash`);
+    throw new Error(`无效的引用：“${ref}”不能以连字符开头`);
   }
 }
 

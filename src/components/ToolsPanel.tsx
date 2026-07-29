@@ -131,7 +131,7 @@ export function ToolsPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader icon={TerminalIcon} label="Terminal" iconClass="text-emerald-600/70 dark:text-emerald-200/50">
+      <PanelHeader icon={TerminalIcon} label="终端" iconClass="text-emerald-600/70 dark:text-emerald-200/50">
         {hasTabs && (
           <span className="text-[10px] tabular-nums text-foreground/35">{tabs.length}</span>
         )}
@@ -163,14 +163,14 @@ export function ToolsPanel({
                 className="group flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-medium text-foreground/35 transition-all duration-200 hover:bg-foreground/[0.05] hover:text-foreground/60"
               >
                 <Plus className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" />
-                New Terminal
+                新建终端
               </button>
             </div>
           )}
           {!hasTabs && !terminalsReady && (
             <div className="flex h-full flex-col items-center justify-center gap-2.5">
               <Loader2 className="h-4 w-4 animate-spin text-foreground/20" />
-              <span className="text-xs text-foreground/30">Restoring terminals...</span>
+              <span className="text-xs text-foreground/30">正在恢复终端…</span>
             </div>
           )}
         </div>
@@ -236,7 +236,7 @@ export function ToolsPanel({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="left" sideOffset={6}>
-                  <p className="text-xs font-medium">New Terminal</p>
+                  <p className="text-xs font-medium">新建终端</p>
                 </TooltipContent>
               </Tooltip>
             </div>

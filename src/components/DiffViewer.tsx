@@ -608,7 +608,7 @@ export const DiffViewer = memo(function DiffViewer({
         <button
           onClick={handleCopy}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:bg-accent/30 hover:text-muted-foreground/80"
-          title="Copy new content"
+          title="复制新内容"
           type="button"
         >
           {copied ? (
@@ -624,7 +624,7 @@ export const DiffViewer = memo(function DiffViewer({
           <DiffBodyPlaceholder
             heightPx={editorHeightPx}
             fillHeight={fillHeight}
-            label="Preparing diff"
+            label="正在准备差异对比"
           />
         ) : (
           <Suspense
@@ -632,7 +632,7 @@ export const DiffViewer = memo(function DiffViewer({
               <DiffBodyPlaceholder
                 heightPx={editorHeightPx}
                 fillHeight={fillHeight}
-                label="Loading Monaco diff"
+                label="正在加载差异编辑器"
               />
             }
           >
@@ -653,7 +653,7 @@ export const DiffViewer = memo(function DiffViewer({
                 <DiffBodyPlaceholder
                   heightPx={editorHeightPx}
                   fillHeight={fillHeight}
-                  label="Loading Monaco diff"
+                  label="正在加载差异编辑器"
                 />
               }
             />

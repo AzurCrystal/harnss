@@ -2,9 +2,6 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useMemo, useCallback, use
 import { motion } from "motion/react";
 import { Loader2, Minus } from "lucide-react";
 import type { UIMessage } from "@/types";
-import { AgentIcon } from "./AgentIcon";
-import { getAgentIcon } from "@/lib/engine-icons";
-import { useAgentContext } from "./AgentContext";
 import { MessageBubble } from "./MessageBubble";
 import { SummaryBlock } from "./SummaryBlock";
 import { ToolCall } from "./ToolCall";
@@ -168,7 +165,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
         <div className="flex items-center gap-1.5 text-xs">
           <Minus className="h-3 w-3 text-foreground/40" />
           <TextShimmer as="span" className="italic opacity-60" duration={1.8} spread={1.5}>
-            Planning next moves
+            正在规划下一步
           </TextShimmer>
         </div>
       </div>
@@ -278,10 +275,8 @@ interface ChatViewProps {
 
 export const ChatView = memo(function ChatView(props: ChatViewProps) {
   const { messages } = props;
-  const { agents, selectedAgent, handleAgentChange } = useAgentContext();
 
   if (messages.length === 0) {
-    const showAgentPicker = agents.length > 1;
 
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -296,48 +291,16 @@ export const ChatView = memo(function ChatView(props: ChatViewProps) {
               className="text-3xl italic text-foreground/20"
               style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
-              Send a message to start
+              发送消息开始对话
             </h2>
             <p
               className="text-sm italic text-muted-foreground/30"
               style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
-              Your conversation will appear here
+              对话内容将显示在这里
             </p>
           </div>
 
-          {showAgentPicker && (
-            <motion.div
-              className="flex items-center gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.4, ease: [0.22, 0.68, 0, 1] }}
-            >
-              {agents.map((agent) => {
-                const isSelected = agent.engine === "claude"
-                  ? selectedAgent == null || selectedAgent.engine === "claude"
-                  : selectedAgent?.id === agent.id;
-
-                return (
-                  <button
-                    key={agent.id}
-                    title={agent.name}
-                    onClick={() => handleAgentChange(agent.engine === "claude" ? null : agent)}
-                    className={`rounded-full p-2 transition-all ${
-                      isSelected
-                        ? "bg-foreground/[0.06] ring-1 ring-foreground/[0.08] scale-110"
-                        : "opacity-30 hover:opacity-60 hover:scale-105"
-                    }`}
-                  >
-                    <AgentIcon
-                      icon={getAgentIcon(agent)}
-                      size={20}
-                    />
-                  </button>
-                );
-              })}
-            </motion.div>
-          )}
         </motion.div>
       </div>
     );

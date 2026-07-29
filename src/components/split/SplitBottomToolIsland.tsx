@@ -50,9 +50,6 @@ export interface SplitBottomToolIslandProps {
   // Tool island shared context
   toolIslandCtx: ToolIslandContextProps;
 
-  // Pane settings
-  acpPermissionBehavior: "ask" | "auto_accept" | "allow_all";
-  handleAgentWorktreeChange: (path: string | null) => void;
 }
 
 // ── Island renderer (shared between active and hosted) ──
@@ -84,7 +81,7 @@ function renderIslandContent(
   const controls = (
     <PanelDockControls
       isBottom={true}
-      moveLabel="Move to top row"
+      moveLabel="移到顶行"
       moveIcon={ArrowUp}
       onMovePlacement={() => splitView.moveToolIsland(island.id, "top")}
       onDragStart={(event) => {
@@ -135,12 +132,11 @@ function renderIslandContent(
         headerControls={controls}
         projectPath={paneProjectPath}
         projectRoot={paneProjectRoot}
-        projectId={paneProject?.id ?? null}
         sessionId={island.sourceSessionId}
         messages={paneState.messages}
-        activeEngine={session?.engine}
         isActiveSessionPane={isActiveSessionPane}
-        hasLiveSession={paneState.isConnected}
+        isSessionProcessing={paneState.isProcessing}
+        isSessionCompacting={paneState.isCompacting}
         {...toolIslandCtx}
       />
     </motion.div>
@@ -153,7 +149,7 @@ function SplitBottomToolIslandInner(props: SplitBottomToolIslandProps) {
   const {
     island, fraction, insertBeforeIndex,
     activeSessionId, activeSession, primaryPane,
-    loadSplitPaneBootstrap, acpPermissionBehavior,
+    loadSplitPaneBootstrap,
   } = props;
 
   if (island.sourceSessionId === activeSessionId) {
@@ -164,7 +160,6 @@ function SplitBottomToolIslandInner(props: SplitBottomToolIslandProps) {
     <SplitPaneHost
       key={island.id}
       sessionId={island.sourceSessionId}
-      acpPermissionBehavior={acpPermissionBehavior}
       loadBootstrap={loadSplitPaneBootstrap}
     >
       {({ session, paneState }) =>

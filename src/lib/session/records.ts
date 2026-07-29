@@ -22,14 +22,22 @@ export function toChatSession(
     planMode: session.planMode,
     totalCost: session.totalCost ?? 0,
     isActive,
-    engine: session.engine,
-    codexThreadId: session.codexThreadId,
+    engine: "omp",
+    sourceEngine: session.sourceEngine ?? session.engine,
     folderId: session.folderId,
     pinned: session.pinned,
     branch: session.branch,
-    agentId: session.agentId,
+    agentSessionId: session.agentSessionId,
   };
 }
+export function getOmpResumeSession(
+  session: Pick<ChatSession, "sourceEngine" | "agentSessionId">,
+): string | undefined {
+  return session.sourceEngine !== undefined && session.sourceEngine !== "omp"
+    ? undefined
+    : session.agentSessionId;
+}
+
 
 export function buildPersistedSession(
   session: ChatSession,
@@ -49,12 +57,10 @@ export function buildPersistedSession(
     planMode: session.planMode,
     totalCost,
     contextUsage,
-    engine: session.engine,
+    engine: "omp",
     folderId: session.folderId,
     pinned: session.pinned,
     branch: session.branch,
-    ...(session.agentId ? { agentId: session.agentId } : {}),
     ...(session.agentSessionId ? { agentSessionId: session.agentSessionId } : {}),
-    ...(session.engine === "codex" && session.codexThreadId ? { codexThreadId: session.codexThreadId } : {}),
   };
 }

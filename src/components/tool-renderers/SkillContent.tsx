@@ -51,7 +51,7 @@ export function SkillContent({ message }: { message: UIMessage }) {
       </div>
 
       <span className="text-[10px] text-foreground/25">
-        {result.success ? "Skill loaded" : "Failed to load skill"}
+        {result.success ? "技能已加载" : "技能加载失败"}
       </span>
     </div>
   );

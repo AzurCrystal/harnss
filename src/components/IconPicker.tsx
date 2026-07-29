@@ -55,8 +55,8 @@ export function IconPicker({ value, iconType, onChange }: IconPickerProps) {
   return (
     <Tabs defaultValue={tab} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="emoji">Emoji</TabsTrigger>
-        <TabsTrigger value="icons">Icons</TabsTrigger>
+        <TabsTrigger value="emoji">表情符号</TabsTrigger>
+        <TabsTrigger value="icons">图标</TabsTrigger>
       </TabsList>
 
       <TabsContent value="emoji">
@@ -79,7 +79,7 @@ export function IconPicker({ value, iconType, onChange }: IconPickerProps) {
 
       <TabsContent value="icons" className="space-y-2">
         <Input
-          placeholder="Search icons..."
+          placeholder="搜索图标…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 text-sm"

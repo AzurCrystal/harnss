@@ -7,18 +7,21 @@
  */
 
 import { useEffect, useRef, useState, startTransition } from "react";
-import type { ChatSession, PermissionRequest, SlashCommand, UIMessage, ACPConfigOption, ACPPermissionEvent } from "@/types";
+import type { ChatSession, PermissionRequest, UIMessage } from "@/types";
 import type { InitialMeta, SessionPaneBootstrap } from "./types";
 
 interface ExtraPaneLoaderResult {
   readyId: string | null;
   session: ChatSession | null;
+  cwd: string | undefined;
   initialMessages: UIMessage[];
   initialMeta: InitialMeta | null;
   initialPermission: PermissionRequest | null;
-  initialConfigOptions: ACPConfigOption[];
-  initialSlashCommands: SlashCommand[];
-  initialRawAcpPermission: ACPPermissionEvent | null;
+  initialSupportedModels: SessionPaneBootstrap["initialSupportedModels"];
+  initialOmpModels: SessionPaneBootstrap["initialOmpModels"];
+  initialThinkingLevels: SessionPaneBootstrap["initialThinkingLevels"];
+  initialThinkingLevel: SessionPaneBootstrap["initialThinkingLevel"];
+  initialSlashCommands: SessionPaneBootstrap["initialSlashCommands"];
 }
 
 interface UseExtraPaneLoaderOptions {
@@ -32,12 +35,15 @@ export function useExtraPaneLoader({
 }: UseExtraPaneLoaderOptions): ExtraPaneLoaderResult {
   const [readyId, setReadyId] = useState<string | null>(null);
   const [session, setSession] = useState<ChatSession | null>(null);
+  const [cwd, setCwd] = useState<string>();
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [initialMeta, setInitialMeta] = useState<InitialMeta | null>(null);
   const [initialPermission, setInitialPermission] = useState<PermissionRequest | null>(null);
-  const [initialConfigOptions, setInitialConfigOptions] = useState<ACPConfigOption[]>([]);
-  const [initialSlashCommands, setInitialSlashCommands] = useState<SlashCommand[]>([]);
-  const [initialRawAcpPermission, setInitialRawAcpPermission] = useState<ACPPermissionEvent | null>(null);
+  const [initialSupportedModels, setInitialSupportedModels] = useState<SessionPaneBootstrap["initialSupportedModels"]>([]);
+  const [initialOmpModels, setInitialOmpModels] = useState<SessionPaneBootstrap["initialOmpModels"]>([]);
+  const [initialThinkingLevels, setInitialThinkingLevels] = useState<SessionPaneBootstrap["initialThinkingLevels"]>([]);
+  const [initialThinkingLevel, setInitialThinkingLevel] = useState<SessionPaneBootstrap["initialThinkingLevel"]>();
+  const [initialSlashCommands, setInitialSlashCommands] = useState<SessionPaneBootstrap["initialSlashCommands"]>([]);
 
   const latestSessionIdRef = useRef<string | null>(null);
 
@@ -51,12 +57,15 @@ export function useExtraPaneLoader({
       startTransition(() => {
         setReadyId(null);
         setSession(null);
+        setCwd(undefined);
         setInitialMessages([]);
         setInitialMeta(null);
         setInitialPermission(null);
-        setInitialConfigOptions([]);
+        setInitialSupportedModels([]);
+        setInitialOmpModels([]);
+        setInitialThinkingLevels([]);
+        setInitialThinkingLevel(undefined);
         setInitialSlashCommands([]);
-        setInitialRawAcpPermission(null);
       });
       return;
     }
@@ -69,12 +78,15 @@ export function useExtraPaneLoader({
       startTransition(() => {
         setReadyId(sessionId);
         setSession(bootstrap.session);
+        setCwd(bootstrap.cwd);
         setInitialMessages(bootstrap.initialMessages);
         setInitialMeta(bootstrap.initialMeta);
         setInitialPermission(bootstrap.initialPermission);
-        setInitialConfigOptions(bootstrap.initialConfigOptions);
-        setInitialSlashCommands(bootstrap.initialSlashCommands);
-        setInitialRawAcpPermission(bootstrap.initialRawAcpPermission);
+        setInitialSupportedModels(bootstrap.initialSupportedModels ?? []);
+        setInitialOmpModels(bootstrap.initialOmpModels ?? []);
+        setInitialThinkingLevels(bootstrap.initialThinkingLevels ?? []);
+        setInitialThinkingLevel(bootstrap.initialThinkingLevel);
+        setInitialSlashCommands(bootstrap.initialSlashCommands ?? []);
       });
     }).catch(() => {
       if (latestSessionIdRef.current !== sessionId) {
@@ -84,12 +96,15 @@ export function useExtraPaneLoader({
       startTransition(() => {
         setReadyId(null);
         setSession(null);
+        setCwd(undefined);
         setInitialMessages([]);
         setInitialMeta(null);
         setInitialPermission(null);
-        setInitialConfigOptions([]);
+        setInitialSupportedModels([]);
+        setInitialOmpModels([]);
+        setInitialThinkingLevels([]);
+        setInitialThinkingLevel(undefined);
         setInitialSlashCommands([]);
-        setInitialRawAcpPermission(null);
       });
     });
   }, [loadBootstrap, sessionId]);
@@ -97,11 +112,14 @@ export function useExtraPaneLoader({
   return {
     readyId,
     session,
+    cwd,
     initialMessages,
     initialMeta,
     initialPermission,
-    initialConfigOptions,
+    initialSupportedModels,
+    initialOmpModels,
+    initialThinkingLevels,
+    initialThinkingLevel,
     initialSlashCommands,
-    initialRawAcpPermission,
   };
 }

@@ -18,13 +18,13 @@ function readStringArray(value: unknown): string[] {
 function getActionLabel(actionType: string): string {
   switch (actionType) {
     case "search":
-      return "search";
+      return "搜索";
     case "openPage":
-      return "open page";
+      return "打开页面";
     case "findInPage":
-      return "find in page";
+      return "在页面中查找";
     default:
-      return "web";
+      return "网页";
   }
 }
 
@@ -50,14 +50,14 @@ export function WebSearchContent({ message }: { message: UIMessage }) {
       {(query || actionType) && (
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-foreground/50">
           <Search className="h-3 w-3 shrink-0 text-foreground/25" />
-          {query ? <span className="min-w-0 truncate">&quot;{query}&quot;</span> : <span>Web search</span>}
+          {query ? <span className="min-w-0 truncate">&quot;{query}&quot;</span> : <span>网页搜索</span>}
           {actionType && <span className="text-foreground/25">{getActionLabel(actionType)}</span>}
         </div>
       )}
 
       {actionQuery && actionQuery !== query && (
         <div className="text-[11px] text-foreground/35">
-          Search query: <span className="font-mono text-foreground/55">{actionQuery}</span>
+          搜索词：<span className="font-mono text-foreground/55">{actionQuery}</span>
         </div>
       )}
 
@@ -92,7 +92,7 @@ export function WebSearchContent({ message }: { message: UIMessage }) {
 
       {pattern && (
         <div className="text-[11px] text-foreground/35">
-          Pattern: <span className="font-mono text-foreground/55">{pattern}</span>
+          匹配模式：<span className="font-mono text-foreground/55">{pattern}</span>
         </div>
       )}
 
@@ -123,7 +123,7 @@ export function WebSearchContent({ message }: { message: UIMessage }) {
           })}
           {overflow > 0 && (
             <div className="border-t border-foreground/[0.06] px-3 py-1 text-[11px] text-foreground/30">
-              +{overflow} more result{overflow !== 1 ? "s" : ""}
+              另有 {overflow} 条结果
             </div>
           )}
         </div>

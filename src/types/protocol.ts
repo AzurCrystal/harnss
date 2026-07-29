@@ -128,7 +128,6 @@ export interface ToolUseResult {
   status?: string;
   description?: string;
   agentId?: string;
-  outputFile?: string;
   prompt?: string;
   content?: string | Array<{ type: string; text: string }>;
   structuredContent?: Record<string, unknown>;

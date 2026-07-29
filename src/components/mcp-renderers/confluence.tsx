@@ -28,14 +28,14 @@ interface ConfluenceSearchData {
 function ConfluenceSearchResultsView({ data }: { data: ConfluenceSearchData }) {
   const results = data.results;
   if (!results || results.length === 0) {
-    return <McpEmptyState message="No results found" />;
+    return <McpEmptyState message="未找到结果" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={data.totalSize ?? results.length} noun="result" />
+      <McpListHeader count={data.totalSize ?? results.length} noun="结果" />
       {results.map((r, i) => {
-        const title = r.content?.title ?? r.title ?? "Untitled";
+        const title = r.content?.title ?? r.title ?? "无标题";
         const space = r.content?.space?.key;
         return (
           <div
@@ -85,12 +85,12 @@ interface ConfluenceSpacesData {
 function ConfluenceSpacesView({ data }: { data: ConfluenceSpacesData }) {
   const spaces = data.results;
   if (!spaces || spaces.length === 0) {
-    return <McpEmptyState message="No spaces found" />;
+    return <McpEmptyState message="未找到空间" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={spaces.length} noun="space" />
+      <McpListHeader count={spaces.length} noun="空间" />
       {spaces.map((s) => (
         <div
           key={s.key ?? s.id}
@@ -146,12 +146,12 @@ interface ConfluencePageDescendantsData {
 function ConfluencePageDescendantsView({ data }: { data: ConfluencePageDescendantsData }) {
   const results = data.results;
   if (!results || results.length === 0) {
-    return <McpEmptyState message="No descendants found" />;
+    return <McpEmptyState message="未找到下级页面" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={results.length} noun="descendant" />
+      <McpListHeader count={results.length} noun="下级页面" />
       {results.map((d) => {
         const typeKey = (d.type ?? "page").toLowerCase();
         const typeInfo = DESCENDANT_TYPE_ICON[typeKey] ?? DESCENDANT_TYPE_ICON.page;
@@ -165,7 +165,7 @@ function ConfluencePageDescendantsView({ data }: { data: ConfluencePageDescendan
           >
             <Icon className={`h-3.5 w-3.5 shrink-0 ${typeInfo.color}`} />
             <span className="min-w-0 flex-1 truncate text-foreground/80 text-[11px]">
-              {d.title ?? "Untitled"}
+              {d.title ?? "无标题"}
             </span>
             {d.type && (
               <Badge variant="outline" className="h-3.5 px-1 text-[9px] shrink-0">
@@ -235,15 +235,15 @@ function ConfluencePageResult({ data, mode }: { data: ConfluencePageResultData; 
 
   const isUpdate = mode === "update" || (data.version?.number != null && data.version.number > 1);
   const Icon = isUpdate ? Pencil : Plus;
-  const label = isUpdate ? "Page updated" : "Page created";
+  const label = isUpdate ? "页面已更新" : "页面已创建";
   const accentBg = isUpdate ? "bg-blue-500/15" : "bg-emerald-500/15";
   const accentText = isUpdate ? "text-blue-400" : "text-emerald-400";
   const iconColor = isUpdate ? "text-blue-400/70" : "text-emerald-400/70";
 
   const versionDate = data.version?.createdAt
-    ? new Date(data.version.createdAt).toLocaleString()
+    ? new Date(data.version.createdAt).toLocaleString("zh-CN")
     : data.createdAt
-      ? new Date(data.createdAt).toLocaleString()
+      ? new Date(data.createdAt).toLocaleString("zh-CN")
       : null;
 
   const webUrl = data._links?.base && data._links?.webui
@@ -272,7 +272,7 @@ function ConfluencePageResult({ data, mode }: { data: ConfluencePageResultData; 
           )}
         </div>
         <h4 className="text-[13px] font-medium text-foreground/90 wrap-break-word">
-          {data.title ?? "Untitled"}
+          {data.title ?? "无标题"}
         </h4>
         {isUpdate && data.version?.message && (
           <p className="text-[11px] text-foreground/40 mt-0.5 wrap-break-word">
@@ -284,17 +284,17 @@ function ConfluencePageResult({ data, mode }: { data: ConfluencePageResultData; 
       {/* Fields */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-3 py-2 text-[11px]">
         {data.id && (
-          <Field label="Page ID">
+          <Field label="页面 ID">
             <span className="text-foreground/50 font-mono">{data.id}</span>
           </Field>
         )}
         {data.spaceId && (
-          <Field label="Space ID">
+          <Field label="空间 ID">
             <span className="text-foreground/50 font-mono">{data.spaceId}</span>
           </Field>
         )}
         {data.parentId && (
-          <Field label="Parent">
+          <Field label="父页面">
             <span className="text-foreground/50 font-mono">{data.parentId}</span>
             {data.parentType && (
               <span className="text-foreground/30 ms-1">({data.parentType})</span>
@@ -302,12 +302,12 @@ function ConfluencePageResult({ data, mode }: { data: ConfluencePageResultData; 
           </Field>
         )}
         {data.version?.number != null && (
-          <Field label="Version">
+          <Field label="版本">
             <span className="text-foreground/50">v{data.version.number}</span>
           </Field>
         )}
         {versionDate && (
-          <Field label={isUpdate ? "Updated" : "Created"}>
+          <Field label={isUpdate ? "更新时间" : "创建时间"}>
             <span className="text-foreground/40">{versionDate}</span>
           </Field>
         )}
@@ -350,7 +350,7 @@ function ConfluenceContentPreview({ html }: { html: string }) {
             className={`h-3 w-3 shrink-0 text-foreground/30 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
           />
           <span className="text-[10px] text-foreground/30 uppercase tracking-wider font-medium">
-            Content preview
+            内容预览
           </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -382,12 +382,12 @@ interface ConfluencePageListData {
 function ConfluencePageListView({ data }: { data: ConfluencePageListData }) {
   const results = data.results;
   if (!results || results.length === 0) {
-    return <McpEmptyState message="No pages found" />;
+    return <McpEmptyState message="未找到页面" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={results.length} noun="page" />
+      <McpListHeader count={results.length} noun="页面" />
       {results.map((p) => {
         const typeKey = (p.type ?? "page").toLowerCase();
         const typeInfo = DESCENDANT_TYPE_ICON[typeKey] ?? DESCENDANT_TYPE_ICON.page;
@@ -400,7 +400,7 @@ function ConfluencePageListView({ data }: { data: ConfluencePageListData }) {
           >
             <Icon className={`h-3.5 w-3.5 shrink-0 ${typeInfo.color}`} />
             <span className="min-w-0 flex-1 truncate text-foreground/80 text-[11px]">
-              {p.title ?? "Untitled"}
+              {p.title ?? "无标题"}
             </span>
             {p.type && p.type !== "page" && (
               <Badge variant="outline" className="h-3.5 px-1 text-[9px] shrink-0">

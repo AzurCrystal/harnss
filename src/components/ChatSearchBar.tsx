@@ -118,7 +118,7 @@ export const ChatSearchBar = memo(function ChatSearchBar({
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Find in chat..."
+          placeholder="在对话中搜索…"
           className="w-44 bg-transparent px-1.5 py-0.5 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
 
@@ -126,8 +126,8 @@ export const ChatSearchBar = memo(function ChatSearchBar({
         {hasQuery && (
           <span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
             {matchIds.length === 0
-              ? "0 results"
-              : `${currentIndex + 1} of ${matchIds.length}`}
+              ? "0 个结果"
+              : `${currentIndex + 1} / ${matchIds.length}`}
           </span>
         )}
 
@@ -136,7 +136,7 @@ export const ChatSearchBar = memo(function ChatSearchBar({
           onClick={goPrev}
           disabled={matchIds.length === 0}
           className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-30"
-          aria-label="Previous match"
+          aria-label="上一个匹配"
         >
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
@@ -144,7 +144,7 @@ export const ChatSearchBar = memo(function ChatSearchBar({
           onClick={goNext}
           disabled={matchIds.length === 0}
           className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-30"
-          aria-label="Next match"
+          aria-label="下一个匹配"
         >
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -153,7 +153,7 @@ export const ChatSearchBar = memo(function ChatSearchBar({
         <button
           onClick={onClose}
           className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
-          aria-label="Close search"
+          aria-label="关闭搜索"
         >
           <X className="h-3.5 w-3.5" />
         </button>

@@ -16,22 +16,22 @@ export function formatAssistantTurnDividerLabel(durationMs: number): string {
   const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
 
   if (totalSeconds < 60) {
-    return `Worked for ${totalSeconds}s`;
+    return `耗时 ${totalSeconds} 秒`;
   }
 
   if (totalSeconds < 3600) {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return seconds === 0
-      ? `Worked for ${minutes}m`
-      : `Worked for ${minutes}m ${seconds}s`;
+      ? `耗时 ${minutes} 分`
+      : `耗时 ${minutes} 分 ${seconds} 秒`;
   }
 
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   return minutes === 0
-    ? `Worked for ${hours}h`
-    : `Worked for ${hours}h ${minutes}m`;
+    ? `耗时 ${hours} 小时`
+    : `耗时 ${hours} 小时 ${minutes} 分`;
 }
 
 function collectTurnDividerForRange(

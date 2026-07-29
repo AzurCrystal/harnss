@@ -154,7 +154,7 @@ function buildAuthHeader(oauthData: Pick<JiraOAuthData, "accessToken" | "email">
 function resolveAuth(instanceUrl: string): JiraOAuthData | { error: string } {
   const oauthData = loadJiraOAuthData(instanceUrl);
   if (!oauthData?.accessToken) {
-    return { error: "Not authenticated with Jira" };
+    return { error: "尚未连接 Jira" };
   }
   return oauthData;
 }
@@ -183,9 +183,9 @@ async function jiraFetch<T>(
   });
 
   if (!response.ok) {
-    const label = init?.method === "POST" ? "write" : "fetch";
+    const action = init?.method === "POST" ? "写入" : "获取";
     return {
-      error: `Failed to ${label} data: ${response.status} ${response.statusText}`,
+      error: `${action} Jira 数据失败：${response.status} ${response.statusText}`,
     };
   }
 
@@ -272,7 +272,7 @@ export async function getProjects(
     return (data.values ?? []).map((project) => ({
       id: String(project.id ?? project.key),
       key: String(project.key ?? ""),
-      name: String(project.name ?? project.key ?? "Untitled project"),
+      name: String(project.name ?? project.key ?? "未命名项目"),
     }));
   } catch (error) {
     return { error: reportError("JIRA_GET_PROJECTS_ERR", error) };
@@ -302,7 +302,7 @@ export async function getSprints(
 
     if (!response.ok) {
       return {
-        error: `Failed to fetch sprints: ${response.status} ${response.statusText}`,
+        error: `获取 Sprint 失败：${response.status} ${response.statusText}`,
       };
     }
 
@@ -336,7 +336,7 @@ export async function getBoardConfiguration(
     const columns = (data.columnConfig?.columns ?? []).map(
       (column, index) => ({
         id: `${boardId}:${index}:${column.name ?? "column"}`,
-        name: column.name ?? `Column ${index + 1}`,
+        name: column.name ?? `第 ${index + 1} 列`,
         statusIds: Array.isArray(column.statuses)
           ? column.statuses
               .map((status) => String(status.id ?? ""))
@@ -394,7 +394,7 @@ export async function getComments(
 
     return (data.comments ?? []).map((comment) => ({
       id: comment.id,
-      author: comment.author?.displayName ?? "Unknown",
+      author: comment.author?.displayName ?? "未知",
       authorAvatarUrl: pickAvatarUrl(comment.author?.avatarUrls),
       body: comment.body ?? "",
       created: comment.created ?? "",
@@ -456,7 +456,7 @@ export async function transitionIssue(
 
     if (!response.ok) {
       return {
-        error: `Failed to transition issue: ${response.status} ${response.statusText}`,
+        error: `转换问题状态失败：${response.status} ${response.statusText}`,
       };
     }
 
@@ -478,7 +478,7 @@ function mapRawIssue(issue: JiraRawIssue, base: string): JiraIssue {
     key: issue.key,
     summary: fields.summary ?? "",
     description: fields.description as JiraIssue["description"],
-    status: fields.status?.name ?? "Unknown",
+    status: fields.status?.name ?? "未知",
     statusId: fields.status?.id ? String(fields.status.id) : undefined,
     statusCategory: fields.status?.statusCategory?.key as JiraIssue["statusCategory"],
     assignee: fields.assignee

@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ChatFolder, ChatSession, InstalledAgent } from "@/types";
+import type { ChatFolder, ChatSession } from "@/types";
 import { SessionItem } from "./SessionItem";
 import { useSidebarActions } from "./SidebarActionsContext";
 import {
@@ -26,7 +26,6 @@ export function FolderSection({
   onPinFolder,
   onRenameFolder,
   onDeleteFolder,
-  agents,
   defaultCollapsed = false,
 }: {
   folder: ChatFolder;
@@ -40,7 +39,6 @@ export function FolderSection({
   onRenameFolder: (name: string) => void;
   /** Delete this specific folder. Pre-bound by the parent. */
   onDeleteFolder: () => void;
-  agents?: InstalledAgent[];
   defaultCollapsed?: boolean;
 }) {
   const {
@@ -155,25 +153,25 @@ export function FolderSection({
               {folder.pinned ? (
                 <>
                   <PinOff className="me-2 h-3.5 w-3.5" />
-                  Unpin
+                  取消置顶
                 </>
               ) : (
                 <>
                   <Pin className="me-2 h-3.5 w-3.5" />
-                  Pin
+                  置顶
                 </>
               )}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={startEditing}>
               <Pencil className="me-2 h-3.5 w-3.5" />
-              Rename
+              重命名
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={onDeleteFolder}
             >
               <Trash2 className="me-2 h-3.5 w-3.5" />
-              Delete
+              删除
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -184,7 +182,7 @@ export function FolderSection({
         <div className="ms-2">
           {sessions.length === 0 ? (
             <p className="px-3 py-1.5 text-[11px] text-sidebar-foreground/30 italic">
-              No chats
+              暂无对话
             </p>
           ) : (
             sessions.map((session) => (
@@ -199,7 +197,6 @@ export function FolderSection({
                 onPinToggle={() => pinSession(session.id, !session.pinned)}
                 folders={allFolders}
                 onMoveToFolder={(folderId) => moveSessionToFolder(session.id, folderId)}
-                agents={agents}
                 onOpenInSplitView={openInSplitView ? () => openInSplitView(session.id) : undefined}
                 canOpenInSplitView={canOpenSessionInSplitView?.(session.id) ?? true}
               />

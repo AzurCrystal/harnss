@@ -17,18 +17,16 @@ import { CommitInput } from "./CommitInput";
 import { ChangesSection } from "./ChangesSection";
 import { formatRelativeDate, type GitActions } from "./git-panel-utils";
 import type { RepoState } from "@/hooks/useGitStatus";
-import type { GitFileChange, GitFileGroup, EngineId } from "@/types";
+import type { GitFileChange, GitFileGroup } from "@/types";
 
 export interface RepoSectionProps {
   repoState: RepoState;
   git: GitActions;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
-  activeEngine?: EngineId;
-  activeSessionId?: string | null;
 }
 
-export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggleCollapsed, activeEngine, activeSessionId }: RepoSectionProps) {
+export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggleCollapsed }: RepoSectionProps) {
   const { repo, status, branches, log, diffStat } = repoState;
   const cwd = repo.path;
 
@@ -87,7 +85,7 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
       if (result && "diff" in result && result.diff) {
         setDiffContent(result.diff);
       } else {
-        setDiffContent("(no diff available)");
+        setDiffContent("（无可用差异）");
       }
     },
     [expandedDiff, git, cwd],
@@ -134,10 +132,10 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
         <FolderGit2 className="h-3 w-3 shrink-0 text-foreground/40" />
         <span className="min-w-0 truncate text-[11px] font-semibold text-foreground/70">{repo.name}</span>
         {repo.isSubRepo && (
-          <span className="rounded bg-foreground/[0.07] px-1 py-px text-[8px] font-medium text-foreground/35">sub</span>
+          <span className="rounded bg-foreground/[0.07] px-1 py-px text-[8px] font-medium text-foreground/35">子仓库</span>
         )}
         {repo.isWorktree && !repo.isPrimaryWorktree && (
-          <span className="rounded bg-blue-500/12 px-1 py-px text-[8px] font-semibold text-blue-500/70 dark:text-blue-300/70">wt</span>
+          <span className="rounded bg-blue-500/12 px-1 py-px text-[8px] font-semibold text-blue-500/70 dark:text-blue-300/70">工作树</span>
         )}
         {totalChanges > 0 && (
           <span className="rounded-full bg-foreground/[0.07] px-1 py-px text-[9px] font-semibold tabular-nums text-foreground/50">
@@ -171,15 +169,15 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
 
         {/* Sync button group */}
         <div className="flex shrink-0 items-center rounded-md border border-foreground/[0.08] bg-foreground/[0.02]">
-          <button type="button" className="flex h-6 w-6 items-center justify-center text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] rounded-s-md transition-colors cursor-pointer" onClick={() => handleSync("fetch")} title="Fetch">
+          <button type="button" className="flex h-6 w-6 items-center justify-center text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] rounded-s-md transition-colors cursor-pointer" onClick={() => handleSync("fetch")} title="获取">
             <RefreshCw className="h-3 w-3" />
           </button>
           <div className="h-3.5 w-px bg-foreground/[0.08]" />
-          <button type="button" className="flex h-6 w-6 items-center justify-center text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] transition-colors cursor-pointer" onClick={() => handleSync("pull")} title="Pull">
+          <button type="button" className="flex h-6 w-6 items-center justify-center text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] transition-colors cursor-pointer" onClick={() => handleSync("pull")} title="拉取">
             <ArrowDown className="h-3 w-3" />
           </button>
           <div className="h-3.5 w-px bg-foreground/[0.08]" />
-          <button type="button" className="flex h-6 w-6 items-center justify-center text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] rounded-e-md transition-colors cursor-pointer" onClick={() => handleSync("push")} title="Push">
+          <button type="button" className="flex h-6 w-6 items-center justify-center text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] rounded-e-md transition-colors cursor-pointer" onClick={() => handleSync("push")} title="推送">
             <ArrowUp className="h-3 w-3" />
           </button>
         </div>
@@ -211,8 +209,6 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
         cwd={cwd}
         stagedCount={stagedFiles.length}
         totalChanges={totalChanges}
-        activeEngine={activeEngine}
-        activeSessionId={activeSessionId}
         onSyncError={setSyncError}
         onCommit={handleCommit}
       />
@@ -220,7 +216,7 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
       {/* Changes sections */}
       {stagedFiles.length > 0 && (
         <ChangesSection
-          label="Staged"
+          label="已暂存"
           count={stagedFiles.length}
           group="staged"
           files={stagedFiles}
@@ -238,7 +234,7 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
       )}
       {unstagedFiles.length > 0 && (
         <ChangesSection
-          label="Changes"
+          label="更改"
           count={unstagedFiles.length}
           group="unstaged"
           files={unstagedFiles}
@@ -256,7 +252,7 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
       )}
       {untrackedFiles.length > 0 && (
         <ChangesSection
-          label="Untracked"
+          label="未跟踪"
           count={untrackedFiles.length}
           group="untracked"
           files={untrackedFiles}
@@ -276,7 +272,7 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
       {totalChanges === 0 && status && (
         <div className="flex items-center justify-center gap-1 py-3">
           <Check className="h-2.5 w-2.5 text-emerald-500/50" />
-          <p className="text-[10px] text-foreground/40">Working tree clean</p>
+          <p className="text-[10px] text-foreground/40">工作树干净</p>
         </div>
       )}
 
@@ -289,7 +285,7 @@ export function RepoSection({ repoState, git, collapsed: collapsedProp, onToggle
         >
           {showLog ? <ChevronDown className="h-3 w-3 shrink-0 text-foreground/40" /> : <ChevronRight className="h-3 w-3 shrink-0 text-foreground/40" />}
           <History className="h-3 w-3 shrink-0 text-foreground/40" />
-          <span className="text-[10px] font-semibold text-foreground/55">Commits</span>
+          <span className="text-[10px] font-semibold text-foreground/55">提交记录</span>
           <span className="rounded-full bg-foreground/[0.07] px-1.5 py-px text-[9px] font-medium tabular-nums text-foreground/40">{log.length}</span>
         </button>
         {showLog && (

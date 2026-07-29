@@ -14,7 +14,7 @@ export function EnterPlanModeContent({ message }: { message: UIMessage }) {
 
   return (
     <div className="rounded-md bg-foreground/[0.03] px-3 py-2 text-xs text-foreground/50">
-      {resultText || "Exploring codebase and designing implementation approach."}
+      {resultText || "正在探索代码库并设计实现方案。"}
     </div>
   );
 }

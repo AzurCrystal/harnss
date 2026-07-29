@@ -22,12 +22,12 @@ import type {
 export type SortOption = "default" | "status" | "priority" | "type" | "assignee" | "key";
 
 export const SORT_LABELS: Record<SortOption, string> = {
-  default: "Rank",
-  status: "Status",
-  priority: "Priority",
-  type: "Type",
-  assignee: "Assignee",
-  key: "Key",
+  default: "排名",
+  status: "状态",
+  priority: "优先级",
+  type: "类型",
+  assignee: "经办人",
+  key: "问题键",
 };
 
 // ── Board column type ──
@@ -211,12 +211,12 @@ export function useJiraBoardData({ config }: UseJiraBoardDataOptions) {
         projectKey: config.projectKey || undefined,
       });
       if ("error" in result) {
-        setError(`Failed to load boards: ${result.error}`);
+        setError(`加载看板失败：${result.error}`);
       } else {
         setBoards(result);
       }
     } catch (err) {
-      setError(`Failed to load boards: ${reportError("JIRA_LOAD_BOARDS", err)}`);
+      setError(`加载看板失败：${reportError("JIRA_LOAD_BOARDS", err)}`);
     } finally {
       setLoadingBoards(false);
     }
@@ -280,12 +280,12 @@ export function useJiraBoardData({ config }: UseJiraBoardDataOptions) {
         maxResults: 50,
       });
       if ("error" in result) {
-        setError(`Failed to load issues: ${result.error}`);
+        setError(`加载问题失败：${result.error}`);
       } else {
         setIssues(result);
       }
     } catch (err) {
-      setError(`Failed to load issues: ${reportError("JIRA_LOAD_ISSUES", err)}`);
+      setError(`加载问题失败：${reportError("JIRA_LOAD_ISSUES", err)}`);
     } finally {
       setLoadingIssues(false);
     }
@@ -383,7 +383,7 @@ export function useJiraBoardData({ config }: UseJiraBoardDataOptions) {
         );
 
         if (!transition) {
-          toast.error(`No Jira transition available to ${column.name}`);
+          toast.error(`没有可移至 ${column.name} 的 Jira 转换`);
           return;
         }
 
@@ -394,7 +394,7 @@ export function useJiraBoardData({ config }: UseJiraBoardDataOptions) {
         });
 
         if (transitionResult.error) {
-          toast.error("Failed to move Jira issue", { description: transitionResult.error });
+          toast.error("移动 Jira 问题失败", { description: transitionResult.error });
           return;
         }
 
@@ -411,10 +411,10 @@ export function useJiraBoardData({ config }: UseJiraBoardDataOptions) {
               : item,
           ),
         );
-        toast.success(`${issue.key} moved to ${transition.toStatus.name}`);
+        toast.success(`${issue.key} 已移至 ${transition.toStatus.name}`);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        toast.error("Failed to move Jira issue", { description: message });
+        toast.error("移动 Jira 问题失败", { description: message });
       } finally {
         setMovingIssueKey(null);
       }
@@ -456,8 +456,8 @@ export function useJiraBoardData({ config }: UseJiraBoardDataOptions) {
       if (boardsResult.length === 0) {
         setError(
           projectKey
-            ? `No boards found for Jira project ${projectKey}.`
-            : "No boards found for this Jira account.",
+            ? `未找到 Jira 项目 ${projectKey} 的看板。`
+            : "此 Jira 账户未找到看板。",
         );
       }
     } catch (err) {

@@ -69,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
           }}
         >
           <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem" }}>
-            Something went wrong
+            出错了
           </h1>
           <pre
             style={{
@@ -97,7 +97,7 @@ export class ErrorBoundary extends Component<Props, State> {
               cursor: "pointer",
             }}
           >
-            Reload
+            重新加载
           </button>
         </div>
       </div>

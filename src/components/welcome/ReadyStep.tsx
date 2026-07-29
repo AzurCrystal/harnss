@@ -6,11 +6,11 @@ import { PERMISSION_MODES, type ReadyStepProps } from "./shared";
 function themeLabel(theme: string): string {
   switch (theme) {
     case "dark":
-      return "Dark";
+      return "深色";
     case "light":
-      return "Light";
+      return "浅色";
     case "system":
-      return "System";
+      return "跟随系统";
     default:
       return theme;
   }
@@ -37,7 +37,7 @@ export function ReadyStep({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.05 }}
       >
-        Ready to go
+        准备就绪
       </motion.h2>
 
       {/* Settings recap */}
@@ -48,7 +48,7 @@ export function ReadyStep({
         transition={{ duration: 0.5, delay: 0.15 }}
       >
         <span className="rounded-full bg-foreground/[0.06] px-3.5 py-1.5 text-sm font-medium text-foreground/60">
-          {themeLabel(theme)} theme
+          {themeLabel(theme)}主题
         </span>
         <span className="text-muted-foreground/30">·</span>
         <span className="rounded-full bg-foreground/[0.06] px-3.5 py-1.5 text-sm font-medium text-foreground/60">
@@ -63,7 +63,7 @@ export function ReadyStep({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        Start building
+        开始构建
         <ArrowRight className="h-4 w-4" />
       </motion.button>
     </div>

@@ -1,5 +1,3 @@
-import type { InstalledAgent } from "@/types";
-
 // ── Step definitions ──
 
 export const WIZARD_STEPS = [
@@ -7,7 +5,6 @@ export const WIZARD_STEPS = [
   "appearance",
   "permissions",
   "project",
-  "agents",
   "tour",
   "ready",
 ] as const;
@@ -38,12 +35,6 @@ export interface ProjectStepProps extends WizardStepProps {
   hasProjects: boolean;
 }
 
-export interface AgentsStepProps extends WizardStepProps {
-  agents: InstalledAgent[];
-  onSaveAgent: (agent: InstalledAgent) => Promise<{ ok?: boolean; error?: string }>;
-  onDeleteAgent: (id: string) => Promise<{ ok?: boolean; error?: string }>;
-}
-
 export interface ReadyStepProps {
   permissionMode: string;
   onComplete: () => void;
@@ -54,23 +45,23 @@ export interface ReadyStepProps {
 export const PERMISSION_MODES = [
   {
     id: "default",
-    label: "Ask Before Edits",
+    label: "编辑前询问",
     description:
-      "Claude asks for approval before making file changes or running commands.",
+      "智能体在修改文件或运行命令前会请求你的批准。",
     icon: "Shield" as const,
   },
   {
     id: "acceptEdits",
-    label: "Accept Edits",
+    label: "自动接受编辑",
     description:
-      "File edits are auto-approved, commands still require confirmation.",
+      "文件编辑自动批准，运行命令仍需确认。",
     icon: "ShieldCheck" as const,
   },
   {
     id: "bypassPermissions",
-    label: "Allow All",
+    label: "全部允许",
     description:
-      "Everything runs automatically with no prompts.",
+      "所有操作自动执行，不再弹出提示。",
     icon: "ShieldOff" as const,
   },
 ] as const;
@@ -94,9 +85,9 @@ export interface SpaceShowcase {
 }
 
 export const SHOWCASE_SPACES: SpaceShowcase[] = [
-  { name: "Frontend", emoji: "🎨", hue: 260, chroma: 0.15 },
+  { name: "前端", emoji: "🎨", hue: 260, chroma: 0.15 },
   { name: "API", emoji: "⚡", hue: 150, chroma: 0.15 },
-  { name: "Mobile", emoji: "📱", hue: 340, chroma: 0.15 },
+  { name: "移动端", emoji: "📱", hue: 340, chroma: 0.15 },
   { name: "DevOps", emoji: "🚀", hue: 45, chroma: 0.15 },
 ];
 
@@ -110,11 +101,11 @@ export interface ToolShowcase {
 }
 
 export const SHOWCASE_TOOLS: ToolShowcase[] = [
-  { id: "terminal", label: "Terminal", icon: "Terminal", description: "Run commands and scripts" },
-  { id: "git", label: "Source Control", icon: "GitBranch", description: "Commits, branches, diffs" },
-  { id: "browser", label: "Browser", icon: "Globe", description: "Preview and inspect" },
-  { id: "files", label: "Open Files", icon: "FileText", description: "Track accessed files" },
-  { id: "project-files", label: "Project", icon: "FolderTree", description: "Browse file tree" },
+  { id: "terminal", label: "终端", icon: "Terminal", description: "运行命令和脚本" },
+  { id: "git", label: "源代码管理", icon: "GitBranch", description: "提交、分支、差异对比" },
+  { id: "browser", label: "浏览器", icon: "Globe", description: "预览与检查" },
+  { id: "files", label: "打开的文件", icon: "FileText", description: "跟踪访问过的文件" },
+  { id: "project-files", label: "项目", icon: "FolderTree", description: "浏览文件树" },
 ];
 
 /** Preview background for a space color swatch. */

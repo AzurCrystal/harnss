@@ -89,7 +89,7 @@ export function reconcileTerminalState(
       tabs.push({
         id: terminal.terminalId,
         terminalId: terminal.terminalId,
-        label: `Terminal ${tabs.length + 1}`,
+        label: `终端 ${tabs.length + 1}`,
       });
     }
 

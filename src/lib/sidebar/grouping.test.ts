@@ -29,7 +29,6 @@ function makeSession(overrides: Partial<ChatSession> = {}): ChatSession {
     planMode: overrides.planMode,
     engine: overrides.engine,
     agentSessionId: overrides.agentSessionId,
-    agentId: overrides.agentId,
     codexThreadId: overrides.codexThreadId,
     isProcessing: overrides.isProcessing,
     hasPendingPermission: overrides.hasPendingPermission,

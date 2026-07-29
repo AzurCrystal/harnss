@@ -107,7 +107,7 @@ export function buildSidebarGroups(
 
     const pinnedItem: PinnedSidebarItem = {
       type: "pinned",
-      label: "Pinned",
+      label: "已置顶",
       sortTimestamp: sortedSessions.length > 0 ? getSortTimestamp(sortedSessions[0]) : Date.now(),
       sessions: sortedSessions,
       children: pinnedFolderItems.length > 0 ? pinnedFolderItems : undefined,

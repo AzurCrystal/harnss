@@ -13,8 +13,8 @@ export function App() {
   // Throwing here lets the ErrorBoundary show a visible message instead of a blank window.
   if (!window.claude) {
     throw new Error(
-      "window.claude is not available — the preload script likely failed to load. " +
-      "Check the Electron console for errors.",
+      "window.claude 不可用——预加载脚本可能加载失败。" +
+      "请检查 Electron 控制台中的错误。",
     );
   }
 

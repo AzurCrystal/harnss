@@ -72,7 +72,7 @@ export const AboutSettings = memo(function AboutSettings() {
 
   return (
     <div className="flex h-full flex-col">
-      <SettingsHeader title="About" description="Version info, links & credits" />
+      <SettingsHeader title="关于" description="版本信息、链接与致谢" />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-6 py-5">
@@ -84,9 +84,9 @@ export const AboutSettings = memo(function AboutSettings() {
                 Harnss
               </h3>
               <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
-                Open-source desktop client for AI coding agents.
+                专为 oh-my-pi 打造的开源桌面前端。
                 <br />
-                One app for Claude Code, Codex, and any ACP agent.
+                OMP 是唯一的智能体运行时。
               </p>
               {version && (
                 <span className="mt-2 inline-flex items-center rounded-md bg-foreground/[0.05] px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -99,21 +99,21 @@ export const AboutSettings = memo(function AboutSettings() {
           {/* ── Links section ── */}
           <div className="mt-6 border-t border-foreground/[0.06] pt-4">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Links
+              链接
             </span>
 
             <div className="-mx-3 mt-2 flex flex-col gap-0.5">
               <AboutLink
                 icon={Github}
-                label="GitHub Repository"
+                label="GitHub 仓库"
                 href="https://github.com/OpenSource03/harnss"
-                description="Source code, issues &amp; releases"
+                description="源代码、问题与发布"
               />
               <AboutLink
                 icon={Scale}
-                label="MIT License"
+                label="MIT 许可证"
                 href="https://github.com/OpenSource03/harnss/blob/main/LICENSE"
-                description="Free and open-source software"
+                description="自由开源软件"
               />
             </div>
           </div>
@@ -121,19 +121,19 @@ export const AboutSettings = memo(function AboutSettings() {
           {/* ── Credits ── */}
           <div className="mt-4 border-t border-foreground/[0.06] pt-4">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Credits
+              致谢
             </span>
 
             <div className="mt-3 rounded-xl border border-foreground/[0.06] bg-muted/20 px-4 py-3.5">
               <div className="flex items-center gap-2">
                 <Heart className="h-3.5 w-3.5 text-muted-foreground/70" />
                 <span className="text-[13px] font-medium text-foreground/90">
-                  Built by OpenSource
+                  由 OpenSource 构建
                 </span>
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                Harnss is open-source under the MIT License. Contributions, bug reports,
-                and feature requests are welcome on GitHub.
+                Harnss 基于 MIT 许可证开源。欢迎在 GitHub 上贡献代码、报告问题
+                或提出功能建议。
               </p>
             </div>
           </div>
@@ -141,7 +141,7 @@ export const AboutSettings = memo(function AboutSettings() {
           {/* ── Tech acknowledgments ── */}
           <div className="mt-4 border-t border-foreground/[0.06] pt-4 pb-2">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Built with
+              技术栈
             </span>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {[

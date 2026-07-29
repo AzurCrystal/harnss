@@ -58,12 +58,12 @@ export function ChangesSection({
         </button>
         <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           {onStageAll && (
-            <button type="button" onClick={onStageAll} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-300 cursor-pointer transition-colors" title="Stage All">
+            <button type="button" onClick={onStageAll} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-300 cursor-pointer transition-colors" title="全部暂存">
               <Plus className="h-3 w-3" />
             </button>
           )}
           {onUnstageAll && (
-            <button type="button" onClick={onUnstageAll} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-300 cursor-pointer transition-colors" title="Unstage All">
+            <button type="button" onClick={onUnstageAll} className="flex h-5 w-5 items-center justify-center rounded-md text-foreground/30 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-300 cursor-pointer transition-colors" title="全部取消暂存">
               <Minus className="h-3 w-3" />
             </button>
           )}

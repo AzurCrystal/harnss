@@ -24,17 +24,17 @@ interface SplitPaneToolStripProps {
 }
 
 const PANEL_TOOLS: Array<{ id: ToolId; label: string; icon: typeof Terminal }> = [
-  { id: "terminal", label: "Terminal", icon: Terminal },
-  { id: "browser", label: "Browser", icon: Globe },
-  { id: "git", label: "Source Control", icon: GitBranch },
-  { id: "files", label: "Open Files", icon: FileText },
-  { id: "project-files", label: "Project Files", icon: FolderTree },
-  { id: "mcp", label: "MCP Servers", icon: Plug },
+  { id: "terminal", label: "终端", icon: Terminal },
+  { id: "browser", label: "浏览器", icon: Globe },
+  { id: "git", label: "源代码管理", icon: GitBranch },
+  { id: "files", label: "打开的文件", icon: FileText },
+  { id: "project-files", label: "项目文件", icon: FolderTree },
+  { id: "mcp", label: "MCP 服务器", icon: Plug },
 ];
 
 const CONTEXTUAL_TOOLS: Array<{ id: Extract<ToolId, "tasks" | "agents">; label: string; icon: typeof Terminal }> = [
-  { id: "tasks", label: "Tasks", icon: ListTodo },
-  { id: "agents", label: "Agents", icon: Bot },
+  { id: "tasks", label: "任务", icon: ListTodo },
+  { id: "agents", label: "智能体", icon: Bot },
 ];
 
 export const SplitPaneToolStrip = memo(function SplitPaneToolStrip({

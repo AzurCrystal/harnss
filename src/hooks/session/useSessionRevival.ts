@@ -1,18 +1,10 @@
 import { useCallback } from "react";
 import type { ImageAttachment, Project } from "../../types";
-import type { CollaborationMode } from "../../types/codex-protocol/CollaborationMode";
-import { toMcpStatusState } from "../../lib/mcp-utils";
-import { imageAttachmentsToCodexInputs } from "../../lib/engine/codex-adapter";
-import { buildSdkContent } from "../../lib/engine/protocol";
+import { suppressNextSessionCompletion } from "../../lib/notification-utils";
 import { capture } from "../../lib/analytics/analytics";
-import { createSystemMessage, createUserMessage } from "../../lib/message-factory";
-import {
-  DRAFT_ID,
-  getEffectiveClaudePermissionMode,
-  getCodexApprovalPolicy,
-  getCodexSandboxMode,
-  buildCodexCollabMode,
-} from "./types";
+import { createSystemMessage } from "../../lib/message-factory";
+import { getOmpResumeSession } from "../../lib/session/records";
+import { DRAFT_ID, getOmpApprovalMode, getOmpThinkingLevel } from "./types";
 import type { SharedSessionRefs, SharedSessionSetters, EngineHooks } from "./types";
 
 interface UseSessionRevivalParams {
@@ -30,275 +22,97 @@ export function useSessionRevival({
   findProject,
   getProjectCwd,
 }: UseSessionRevivalParams) {
-  const { acp, codex, engine } = engines;
-  const {
-    setSessions,
-    setActiveSessionId,
-    setInitialMessages,
-    setInitialMeta,
-    setInitialConfigOptions,
-    setAcpMcpStatuses,
-  } = setters;
+  const { omp } = engines;
+  const { setSessions } = setters;
   const {
     activeSessionIdRef,
     sessionsRef,
-    messagesRef,
-    totalCostRef,
-    contextUsageRef,
     liveSessionIdsRef,
     startOptionsRef,
-    codexEffortRef,
-    acpAgentIdRef,
-    acpAgentSessionIdRef,
   } = refs;
 
-  const reviveAcpSession = useCallback(
-    async (text: string, images?: ImageAttachment[], displayText?: string) => {
-      const oldId = activeSessionIdRef.current;
-      if (!oldId || oldId === DRAFT_ID) return;
-      const session = sessionsRef.current.find((s) => s.id === oldId);
-      if (!session || !session.agentId) {
-        acp.setMessages((prev) => [...prev, createSystemMessage("ACP session disconnected. Please start a new session.", true)]);
-        return;
-      }
-      const project = findProject(session.projectId);
-      if (!project) return;
+  const reviveSession = useCallback(async (text: string, images?: ImageAttachment[], displayText?: string) => {
+    const sessionId = activeSessionIdRef.current;
+    if (!sessionId || sessionId === DRAFT_ID) return;
 
-      const mcpServers = await window.claude.mcp.list(session.projectId);
-      const result = await window.claude.acp.reviveSession({
-        agentId: session.agentId,
-        cwd: getProjectCwd(project),
-        agentSessionId: session.agentSessionId,
-        mcpServers,
-      });
+    const session = sessionsRef.current.find((entry) => entry.id === sessionId);
+    if (!session) return;
+    const project = findProject(session.projectId);
+    if (!project) return;
 
-      if (result.error || !result.sessionId) {
-        acp.setMessages((prev) => [...prev, createSystemMessage(result.error || "Failed to reconnect ACP session. Please start a new session.", true)]);
-        return;
-      }
-
-      const newId = result.sessionId;
-      liveSessionIdsRef.current.add(newId);
-      acpAgentIdRef.current = session.agentId;
-      acpAgentSessionIdRef.current = result.agentSessionId ?? session.agentSessionId ?? null;
-
-      setSessions((prev) => prev.map((s) =>
-        s.id === oldId
-          ? { ...s, id: newId, agentSessionId: result.agentSessionId ?? s.agentSessionId }
-          : s,
-      ));
-      setAcpMcpStatuses((result.mcpStatuses ?? []).map(s => ({
-        name: s.name,
-        status: toMcpStatusState(s.status),
-      })));
-      setInitialMessages(messagesRef.current);
-      setInitialMeta({
-        isProcessing: false,
-        isConnected: true,
-        sessionInfo: null,
-        totalCost: totalCostRef.current,
-        contextUsage: contextUsageRef.current,
-      });
-      if (result.configOptions?.length) setInitialConfigOptions(result.configOptions);
-      setActiveSessionId(newId);
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      acp.setMessages((prev) => [...prev, createUserMessage(text, images, displayText)]);
-      acp.setIsProcessing(true);
-      capture("message_sent", {
-        engine: "acp",
-        session_id: newId,
-        has_images: !!images?.length,
-        message_length: text.length,
-      });
-      const promptResult = await window.claude.acp.prompt(newId, text, images);
-      if (promptResult?.error) {
-        acp.setMessages((prev) => [...prev, createSystemMessage(`ACP error: ${promptResult.error}`, true)]);
-        acp.setIsProcessing(false);
-      }
-    },
-    [findProject, acp.setMessages, acp.setIsProcessing],
-  );
-
-  /** Revive a dead Codex session — spawn new app-server + thread/resume */
-  const reviveCodexSession = useCallback(
-    async (text: string, images?: ImageAttachment[]) => {
-      const oldId = activeSessionIdRef.current;
-      if (!oldId || oldId === DRAFT_ID) return;
-      const session = sessionsRef.current.find((s) => s.id === oldId);
-      if (!session) return;
-      const project = findProject(session.projectId);
-      if (!project) return;
-
-      // Resolve thread ID from in-memory session first, then persisted session.
-      let codexThreadId: string | undefined = session.codexThreadId;
-      if (!codexThreadId) {
-        try {
-          const persisted = await window.claude.sessions.load(session.projectId, oldId);
-          codexThreadId = persisted?.codexThreadId;
-        } catch { /* ignore */ }
-      }
-
-      if (!codexThreadId) {
-        codex.setMessages((prev) => [...prev, createSystemMessage("Codex session cannot be resumed (no thread ID). Please start a new session.", true)]);
-        return;
-      }
-
-      const result = await window.claude.codex.resume({
-        cwd: getProjectCwd(project),
-        threadId: codexThreadId,
-        model: session.model,
-        approvalPolicy: getCodexApprovalPolicy(startOptionsRef.current),
-        sandbox: getCodexSandboxMode(startOptionsRef.current),
-      });
-
-      if (result.error || !result.sessionId) {
-        codex.setMessages((prev) => [...prev, createSystemMessage(result.error || "Failed to resume Codex session.", true)]);
-        return;
-      }
-
-      const newId = result.sessionId;
-      liveSessionIdsRef.current.add(newId);
-
-      setSessions((prev) => prev.map((s) =>
-        s.id === oldId ? { ...s, id: newId, codexThreadId: result.threadId ?? codexThreadId } : s,
-      ));
-      setInitialMessages(messagesRef.current);
-      setInitialMeta({
-        isProcessing: false,
-        isConnected: true,
-        sessionInfo: null,
-        totalCost: totalCostRef.current,
-        contextUsage: contextUsageRef.current,
-      });
-      setActiveSessionId(newId);
-
-      // Small delay to let hook pick up new sessionId
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      codex.setMessages((prev) => [...prev, createUserMessage(text, images)]);
-      codex.setIsProcessing(true);
-      let codexCollabMode: CollaborationMode | undefined;
-      try {
-        codexCollabMode = buildCodexCollabMode(startOptionsRef.current.planMode, session.model);
-      } catch (err) {
-        codex.setMessages((prev) => [...prev, createSystemMessage(err instanceof Error ? err.message : String(err), true)]);
-        codex.setIsProcessing(false);
-        return;
-      }
-      const sendResult = await window.claude.codex.send(
-        newId,
-        text,
-        imageAttachmentsToCodexInputs(images),
-        codexEffortRef.current,
-        codexCollabMode,
-      );
-      if (sendResult?.error) {
-        codex.setMessages((prev) => [...prev, createSystemMessage(`Unable to send message: ${sendResult.error}`, true)]);
-        codex.setIsProcessing(false);
-      }
-    },
-    [findProject, codex.setMessages, codex.setIsProcessing],
-  );
-
-  // Claude SDK revival — resume session to restore conversation context
-  const reviveSession = useCallback(
-    async (text: string, images?: ImageAttachment[], displayText?: string) => {
-      const oldId = activeSessionIdRef.current;
-      if (!oldId || oldId === DRAFT_ID) return;
-      const session = sessionsRef.current.find((s) => s.id === oldId);
-      if (!session) return;
-      const project = findProject(session.projectId);
-      if (!project) return;
-
-      const startPayload = {
-        cwd: getProjectCwd(project),
-        ...(session.model ? { model: session.model } : {}),
-        permissionMode: getEffectiveClaudePermissionMode(startOptionsRef.current),
-        thinkingEnabled: startOptionsRef.current.thinkingEnabled,
-        effort: startOptionsRef.current.effort,
-        resume: oldId, // Resume the SDK session to restore conversation context
-      };
-
-      let result;
-      try {
-        result = await window.claude.start(startPayload);
-      } catch (err) {
-        engine.setMessages((prev) => [
-          ...prev,
-          createSystemMessage(`Failed to resume session: ${err instanceof Error ? err.message : String(err)}`, true),
-        ]);
-        return;
-      }
-      if (result.error) {
-        engine.setMessages((prev) => [
-          ...prev,
-          createSystemMessage(result.error!, true),
-        ]);
-        return;
-      }
-      const newSessionId = result.sessionId;
-      capture("session_revived", { engine: "claude", success: true });
-
-      if (newSessionId !== oldId) {
-        // SDK returned a different ID (shouldn't happen with resume, but handle it)
-        liveSessionIdsRef.current.delete(oldId);
-        liveSessionIdsRef.current.add(newSessionId);
-
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === oldId
-              ? { ...s, id: newSessionId, isActive: true }
-              : { ...s, isActive: false },
-          ),
-        );
-
-        const oldData = await window.claude.sessions.load(project.id, oldId);
-        if (oldData) {
-          await window.claude.sessions.save({
-            ...oldData,
-            id: newSessionId,
-            messages: messagesRef.current,
-            model: session.model ?? oldData.model,
-          });
-          await window.claude.sessions.delete(project.id, oldId);
-        }
-
-        setActiveSessionId(newSessionId);
-      } else {
-        liveSessionIdsRef.current.add(oldId);
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === oldId ? { ...s, isActive: true } : { ...s, isActive: false },
-          ),
-        );
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      const content = buildSdkContent(text, images);
-      const sendResult = await window.claude.send(newSessionId, {
-        type: "user",
-        message: { role: "user", content },
-      });
-      if (sendResult?.error) {
-        liveSessionIdsRef.current.delete(newSessionId);
-        engine.setMessages((prev) => [
-          ...prev,
-          createSystemMessage(`Unable to send message: ${sendResult.error}`, true),
-        ]);
-        return;
-      }
-      engine.setMessages((prev) => [
-        ...prev,
-        createUserMessage(text, images, displayText),
+    const options = {
+      ...startOptionsRef.current,
+      model: session.model ?? startOptionsRef.current.model,
+      effort: session.effort ?? startOptionsRef.current.effort,
+      permissionMode: session.permissionMode ?? startOptionsRef.current.permissionMode,
+      planMode: session.planMode ?? startOptionsRef.current.planMode,
+    };
+    const replacingLegacyIdentity = session.sourceEngine !== undefined && session.sourceEngine !== "omp";
+    const resumeSession = getOmpResumeSession(session);
+    const started = await window.claude.omp.start({
+      sessionId,
+      cwd: getProjectCwd(project),
+      ...(resumeSession ? { resumeSession } : {}),
+      approvalMode: getOmpApprovalMode(options.permissionMode),
+    });
+    if (started.error) {
+      omp.setMessages((messages) => [
+        ...messages,
+        createSystemMessage(`恢复会话失败：${started.error}`, true),
       ]);
-    },
-    [engine.setMessages, findProject],
-  );
+      return;
+    }
 
-  return {
-    reviveSession,
-    reviveAcpSession,
-    reviveCodexSession,
-  };
+    if (activeSessionIdRef.current !== sessionId) {
+      suppressNextSessionCompletion(sessionId);
+      const stopped = await window.claude.omp.stop(sessionId);
+      if (stopped.error) throw new Error(stopped.error);
+      return;
+    }
+
+    liveSessionIdsRef.current.add(sessionId);
+    setSessions((sessions) => sessions.map((entry) => (
+      entry.id === sessionId
+        ? {
+            ...entry,
+            engine: "omp",
+            sourceEngine: "omp",
+            isActive: true,
+            ...(replacingLegacyIdentity ? { agentSessionId: undefined } : {}),
+          }
+        : entry
+    )));
+
+    if (options.model?.trim() && options.model.trim().toLowerCase() !== "default") {
+      const result = await omp.setModel(options.model);
+      if (result.error) return;
+    }
+    const thinkingLevel = getOmpThinkingLevel(options);
+    if (thinkingLevel) {
+      const result = await omp.setThinkingLevel(thinkingLevel);
+      if (result.error) return;
+    }
+
+    capture("session_revived", { engine: "omp", success: true });
+    capture("message_sent", {
+      engine: "omp",
+      has_images: !!images?.length,
+      message_length: text.length,
+    });
+    await omp.send(text, images, displayText);
+  }, [
+    activeSessionIdRef,
+    findProject,
+    getProjectCwd,
+    liveSessionIdsRef,
+    omp.send,
+    omp.setMessages,
+    omp.setModel,
+    omp.setThinkingLevel,
+    sessionsRef,
+    setSessions,
+    startOptionsRef,
+  ]);
+
+  return { reviveSession };
 }

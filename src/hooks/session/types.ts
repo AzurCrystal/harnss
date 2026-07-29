@@ -1,7 +1,8 @@
-import type { ChatSession, UIMessage, SessionInfo, PermissionRequest, ImageAttachment, McpServerStatus, ModelInfo, AcpPermissionBehavior, EngineId, Project, SlashCommand, ClaudeEffort, ContextUsage, ACPConfigOption, ACPPermissionEvent } from "@/types";
+import type { ChatSession, UIMessage, SessionInfo, PermissionRequest, ImageAttachment, ClaudeEffort, ContextUsage, EngineId, ModelInfo, Project, SlashCommand } from "@/types";
 import type { BackgroundSessionStore } from "../../lib/background/session-store";
-import { permissionModeToCodexPolicy, permissionModeToCodexSandbox } from "../../lib/engine/codex-adapter";
-import type { CollaborationMode } from "../../types/codex-protocol/CollaborationMode";
+import type { OMPHookState } from "../useOMP";
+import type { OmpModel } from "@/lib/engine/omp-adapter";
+import type { OmpApprovalMode, OmpThinkingLevel } from "@shared/types/omp";
 
 export const DRAFT_ID = "__draft__";
 export const DEFAULT_PERMISSION_MODE = "default";
@@ -13,18 +14,6 @@ export interface StartOptions {
   thinkingEnabled?: boolean;
   effort?: ClaudeEffort;
   engine?: EngineId;
-  agentId?: string;
-  /** Cached config options from previous sessions */
-  cachedConfigOptions?: ACPConfigOption[];
-}
-
-export interface CodexModelSummary {
-  id: string;
-  displayName: string;
-  description: string;
-  supportedReasoningEfforts: Array<{ reasoningEffort: string; description: string }>;
-  defaultReasoningEffort: string;
-  isDefault?: boolean;
 }
 
 export interface InitialMeta {
@@ -44,20 +33,18 @@ export interface QueuedMessage {
   messageId: string;
 }
 
-export interface PendingAcpDraftPrompt {
-  text: string;
-  images?: ImageAttachment[];
-  displayText?: string;
-}
-
 export interface SessionPaneBootstrap {
   session: ChatSession;
   initialMessages: UIMessage[];
   initialMeta: InitialMeta | null;
   initialPermission: PermissionRequest | null;
-  initialConfigOptions: ACPConfigOption[];
-  initialSlashCommands: SlashCommand[];
-  initialRawAcpPermission: ACPPermissionEvent | null;
+  initialSupportedModels?: ModelInfo[];
+  initialOmpModels?: OmpModel[];
+  initialThinkingLevels?: OmpThinkingLevel[];
+  initialThinkingLevel?: OmpThinkingLevel;
+  initialSlashCommands?: SlashCommand[];
+  /** Working directory supplied to the pane's OMP hook. */
+  cwd?: string;
 }
 
 /** Shared refs that multiple sub-hooks need to read/write */
@@ -66,6 +53,7 @@ export interface SharedSessionRefs {
   sessionsRef: React.MutableRefObject<ChatSession[]>;
   projectsRef: React.MutableRefObject<Project[]>;
   draftProjectIdRef: React.MutableRefObject<string | null>;
+  draftSessionIdRef: React.MutableRefObject<string | null>;
   startOptionsRef: React.MutableRefObject<StartOptions>;
   messagesRef: React.MutableRefObject<UIMessage[]>;
   totalCostRef: React.MutableRefObject<number>;
@@ -77,22 +65,12 @@ export interface SharedSessionRefs {
   pendingPermissionRef: React.MutableRefObject<PermissionRequest | null>;
   liveSessionIdsRef: React.MutableRefObject<Set<string>>;
   backgroundStoreRef: React.MutableRefObject<BackgroundSessionStore>;
-  preStartedSessionIdRef: React.MutableRefObject<string | null>;
-  draftAcpSessionIdRef: React.MutableRefObject<string | null>;
-  draftMcpStatusesRef: React.MutableRefObject<McpServerStatus[]>;
   materializingRef: React.MutableRefObject<boolean>;
   saveTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
   messageQueueRef: React.MutableRefObject<Map<string, QueuedMessage[]>>;
-  pendingAcpDraftPromptRef: React.MutableRefObject<PendingAcpDraftPrompt | null>;
-  acpAgentIdRef: React.MutableRefObject<string | null>;
-  acpAgentSessionIdRef: React.MutableRefObject<string | null>;
-  codexRawModelsRef: React.MutableRefObject<CodexModelSummary[]>;
-  codexEffortRef: React.MutableRefObject<string>;
-  codexEffortManualOverrideRef: React.MutableRefObject<boolean>;
   lastMessageSyncSessionRef: React.MutableRefObject<string | null>;
   switchSessionRef: React.MutableRefObject<((id: string) => Promise<void>) | undefined>;
   onSpaceChangeRef: React.MutableRefObject<((spaceId: string) => void) | undefined>;
-  acpPermissionBehaviorRef: React.MutableRefObject<AcpPermissionBehavior>;
   /** Current git branch for the active project — set by the orchestrator. */
   currentBranchRef: React.MutableRefObject<string | undefined>;
   /** Split view: session IDs currently visible in extra panes. */
@@ -105,109 +83,40 @@ export interface SharedSessionSetters {
   setActiveSessionId: React.Dispatch<React.SetStateAction<string | null>>;
   setInitialMessages: React.Dispatch<React.SetStateAction<UIMessage[]>>;
   setInitialMeta: React.Dispatch<React.SetStateAction<InitialMeta | null>>;
-  setInitialConfigOptions: React.Dispatch<React.SetStateAction<ACPConfigOption[]>>;
-  setInitialSlashCommands: React.Dispatch<React.SetStateAction<SlashCommand[]>>;
   setInitialPermission: React.Dispatch<React.SetStateAction<PermissionRequest | null>>;
-  setInitialRawAcpPermission: React.Dispatch<React.SetStateAction<ACPPermissionEvent | null>>;
+  setInitialSupportedModels: React.Dispatch<React.SetStateAction<ModelInfo[]>>;
+  setInitialOmpModels: React.Dispatch<React.SetStateAction<OmpModel[]>>;
+  setInitialThinkingLevels: React.Dispatch<React.SetStateAction<OmpThinkingLevel[]>>;
+  setInitialThinkingLevel: React.Dispatch<React.SetStateAction<OmpThinkingLevel | undefined>>;
+  setInitialSlashCommands: React.Dispatch<React.SetStateAction<SlashCommand[]>>;
   setStartOptions: React.Dispatch<React.SetStateAction<StartOptions>>;
   setDraftProjectId: React.Dispatch<React.SetStateAction<string | null>>;
-  setPreStartedSessionId: React.Dispatch<React.SetStateAction<string | null>>;
-  setDraftAcpSessionId: React.Dispatch<React.SetStateAction<string | null>>;
-  setAcpConfigOptionsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  setDraftMcpStatuses: React.Dispatch<React.SetStateAction<McpServerStatus[]>>;
-  setAcpMcpStatuses: React.Dispatch<React.SetStateAction<McpServerStatus[]>>;
+  setDraftSessionId: React.Dispatch<React.SetStateAction<string | null>>;
   setQueuedCount: React.Dispatch<React.SetStateAction<number>>;
-  setCachedModels: React.Dispatch<React.SetStateAction<ModelInfo[]>>;
-  setCodexRawModels: React.Dispatch<React.SetStateAction<CodexModelSummary[]>>;
-  setCodexModelsLoadingMessage: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-// Engine hook types — use ReturnType of the actual hooks for perfect alignment.
-// Imported via type-only to avoid circular dependency (hooks import types, not vice versa).
-import type { useClaude } from "../useClaude";
-import type { useACP } from "../useACP";
-import type { useCodex } from "../useCodex";
-
-/** The engine hook return types that sub-hooks need to call */
+/** OMP hook state shared with session sub-hooks. */
 export interface EngineHooks {
-  claude: ReturnType<typeof useClaude>;
-  acp: ReturnType<typeof useACP>;
-  codex: ReturnType<typeof useCodex>;
-  /** The currently-active engine — one of claude/acp/codex */
-  engine: ReturnType<typeof useClaude> | ReturnType<typeof useACP> | ReturnType<typeof useCodex>;
+  omp: OMPHookState;
+  engine: OMPHookState;
 }
 
 // ── Utility functions shared across sub-hooks ──
 
-export function getSelectedPermissionMode(options: StartOptions): string {
-  const mode = options.permissionMode?.trim();
-  return mode && mode !== "plan" ? mode : DEFAULT_PERMISSION_MODE;
+
+/** Translate persisted Harnss permission labels to OMP's supported approval modes. */
+export function getOmpApprovalMode(permissionMode?: string): OmpApprovalMode | undefined {
+  const mode = permissionMode?.trim() || DEFAULT_PERMISSION_MODE;
+  if (mode === "default") return "always-ask";
+  if (mode === "acceptEdits") return "write";
+  if (mode === "bypassPermissions") return "yolo";
+  if (mode === "always-ask" || mode === "write" || mode === "yolo") return mode;
+  return undefined;
 }
 
-export function getEffectiveClaudePermissionMode(options: StartOptions): string {
-  return options.planMode ? "plan" : getSelectedPermissionMode(options);
-}
-
-export function normalizeCodexModels(rawModels: unknown[]): CodexModelSummary[] {
-  const models: CodexModelSummary[] = [];
-  for (const raw of rawModels) {
-    const model = raw as Record<string, unknown>;
-    if (typeof model.id !== "string") continue;
-    const supportedReasoningEfforts = Array.isArray(model.supportedReasoningEfforts)
-      ? model.supportedReasoningEfforts
-        .map((entry) => entry as Record<string, unknown>)
-        .filter((entry): entry is { reasoningEffort: string; description: string } =>
-          typeof entry.reasoningEffort === "string" && typeof entry.description === "string",
-        )
-      : [];
-    models.push({
-      id: model.id,
-      displayName: typeof model.displayName === "string" ? model.displayName : model.id,
-      description: typeof model.description === "string" ? model.description : "",
-      supportedReasoningEfforts,
-      defaultReasoningEffort:
-        typeof model.defaultReasoningEffort === "string"
-          ? model.defaultReasoningEffort
-          : "medium",
-      isDefault: model.isDefault === true,
-    });
-  }
-  return models;
-}
-
-export function pickCodexModel(
-  requestedModel: string | undefined,
-  models: CodexModelSummary[],
-): string | undefined {
-  const requested = typeof requestedModel === "string" ? requestedModel.trim() : "";
-  if (requested.length > 0 && models.some((m) => m.id === requested)) {
-    return requested;
-  }
-  return models.find((m) => m.isDefault)?.id ?? models[0]?.id;
-}
-
-/** Build a CollaborationMode for plan mode, including the required model in settings. */
-export function buildCodexCollabMode(planMode: boolean | undefined, model: string | undefined): CollaborationMode | undefined {
-  if (!planMode) return undefined;
-  const normalizedModel = model?.trim();
-  if (!normalizedModel) {
-    throw new Error("Codex plan mode is enabled, but no model is selected. Select a Codex model and try again.");
-  }
-  return {
-    mode: "plan" as const,
-    settings: {
-      // The server requires model in settings; it takes precedence when collaborationMode is set
-      model: normalizedModel,
-      reasoning_effort: null,
-      developer_instructions: null,
-    },
-  };
-}
-
-export function getCodexApprovalPolicy(options: StartOptions): string | undefined {
-  return permissionModeToCodexPolicy(getSelectedPermissionMode(options));
-}
-
-export function getCodexSandboxMode(options: StartOptions): "workspace-write" | "danger-full-access" | undefined {
-  return permissionModeToCodexSandbox(getSelectedPermissionMode(options));
+/** Map the persisted thinking settings to the OMP RPC thinking level. */
+export function getOmpThinkingLevel(options: StartOptions): OmpThinkingLevel | undefined {
+  if (options.thinkingEnabled === false) return "off";
+  if (options.effort) return options.effort;
+  return undefined;
 }

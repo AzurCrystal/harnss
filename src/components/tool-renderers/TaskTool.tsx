@@ -86,7 +86,7 @@ export function TaskTool({ message }: { message: UIMessage }) {
             {/* Title */}
             {isCompleted && !expanded ? (
               <>
-                <span className="shrink-0 font-medium text-foreground/75">Used agent</span>
+                <span className="shrink-0 font-medium text-foreground/75">已调用智能体</span>
                 <span className="truncate text-foreground/40">{formatTaskSummary(message)}</span>
               </>
             ) : isRunning ? (
@@ -102,7 +102,7 @@ export function TaskTool({ message }: { message: UIMessage }) {
             {/* Step count badge */}
             {stepCount > 0 && (
               <span className="shrink-0 inline-flex items-center rounded-full bg-foreground/[0.06] px-1.5 py-px text-[10px] font-medium text-foreground/40 tabular-nums">
-                {stepCount} step{stepCount !== 1 ? "s" : ""}
+                {stepCount} 个步骤
               </span>
             )}
           </div>
@@ -143,7 +143,7 @@ function TaskExpandedContent({ message }: { message: UIMessage }) {
       {message.toolInput && (
         <div className="border-t border-foreground/[0.08] px-3.5 py-2.5">
           <p className="mb-1.5 text-[10px] font-semibold text-foreground/35 uppercase tracking-widest">
-            Prompt
+            提示词
           </p>
           <div className="border-s-2 border-foreground/[0.08] ps-3">
             <p className="max-h-20 overflow-auto text-xs text-foreground/55 whitespace-pre-wrap wrap-break-word leading-relaxed">
@@ -157,7 +157,7 @@ function TaskExpandedContent({ message }: { message: UIMessage }) {
       {message.subagentSteps && message.subagentSteps.length > 0 && (
         <div className="border-t border-foreground/[0.08] px-3.5 py-2.5">
           <p className="mb-2 text-[10px] font-semibold text-foreground/35 uppercase tracking-widest">
-            Steps
+            步骤
           </p>
           <div className="space-y-0.5">
             {message.subagentSteps.map((step) => (
@@ -196,7 +196,7 @@ function TaskResultBlock({
   return (
     <div className="border-t border-foreground/[0.08] px-3.5 py-2.5">
       <p className="mb-1.5 text-[10px] font-semibold text-foreground/35 uppercase tracking-widest">
-        Result
+        结果
       </p>
       <div
         className="relative"
@@ -221,7 +221,7 @@ function TaskResultBlock({
           className="mt-1.5 flex items-center gap-1 text-[10px] font-medium text-foreground/40 hover:text-foreground/70 transition-colors"
         >
           <ChevronsUpDown className="h-3 w-3" />
-          {expanded ? "Collapse" : "Show full result"}
+          {expanded ? "收起" : "显示完整结果"}
         </button>
       )}
     </div>
@@ -255,7 +255,7 @@ function SubagentStepRow({ step }: { step: SubagentToolStep }) {
         ) : (
           <span className={isError ? "text-red-400/70" : "text-foreground/75"}>
             {isError
-              ? `Failed to ${getToolLabel(step.toolName, "failure")}`
+              ? (getToolLabel(step.toolName, "failure") ?? "运行失败")
               : (getToolLabel(step.toolName, "past") ?? step.toolName)}
           </span>
         )}

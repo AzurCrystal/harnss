@@ -175,7 +175,7 @@ export const SpaceBar = memo(function SpaceBar({
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          Settings
+          设置
         </TooltipContent>
       </Tooltip>
 
@@ -270,7 +270,7 @@ export const SpaceBar = memo(function SpaceBar({
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          New space
+          新建空间
         </TooltipContent>
       </Tooltip>
 
@@ -327,7 +327,7 @@ export const SpaceBar = memo(function SpaceBar({
         >
           <DropdownMenuItem onClick={() => { if (contextSpace) openEditPopover(contextSpace); closeContext(); }}>
             <Pencil className="me-2 h-3.5 w-3.5" />
-            Edit
+            编辑
           </DropdownMenuItem>
           {contextSpace?.id !== "default" && (
             <DropdownMenuItem
@@ -335,7 +335,7 @@ export const SpaceBar = memo(function SpaceBar({
               onClick={() => { if (contextSpace) setDeleteSpace(contextSpace); closeContext(); }}
             >
               <Trash2 className="me-2 h-3.5 w-3.5" />
-              Delete
+              删除
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -346,15 +346,14 @@ export const SpaceBar = memo(function SpaceBar({
         open={deleteSpace !== null}
         onOpenChange={(open) => !open && setDeleteSpace(null)}
         onConfirm={() => { if (deleteSpace) onDeleteSpace(deleteSpace.id); }}
-        title="Delete Space"
+        title="删除空间"
         description={
           <>
-            Are you sure you want to delete{" "}
-            <span className="font-medium text-foreground">{deleteSpace?.name}</span>?
-            Projects in this space will be moved to General.
+            确定要删除“<span className="font-medium text-foreground">{deleteSpace?.name}</span>”吗？
+            此空间中的项目将被移动到“通用”空间。
           </>
         }
-        confirmLabel="Delete"
+        confirmLabel="删除"
       />
     </div>
   );

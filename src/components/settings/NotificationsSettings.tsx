@@ -25,33 +25,33 @@ const EVENT_GROUPS: Array<{
 }> = [
   {
     key: "sessionComplete",
-    label: "Session Complete",
+    label: "会话完成",
     description:
-      "When Claude finishes processing and the session becomes idle.",
+      "当 OMP 处理完成、会话转为空闲时。",
   },
   {
     key: "exitPlanMode",
-    label: "Exit Plan Mode",
+    label: "退出计划模式",
     description:
-      "When Claude finishes planning and is ready to implement.",
+      "当 OMP 完成规划、准备开始实施时。",
   },
   {
     key: "permissions",
-    label: "Permission Request",
+    label: "权限请求",
     description:
-      "When Claude needs approval to run a command, edit a file, etc.",
+      "当 OMP 需要批准才能运行命令、编辑文件等时。",
   },
   {
     key: "askUserQuestion",
-    label: "Ask User Question",
-    description: "When Claude asks you a question to guide the work.",
+    label: "向用户提问",
+    description: "当 OMP 向你提问以引导工作时。",
   },
 ];
 
 const TRIGGER_OPTIONS: Array<{ value: NotificationTrigger; label: string }> = [
-  { value: "always", label: "Always" },
-  { value: "unfocused", label: "When Unfocused" },
-  { value: "never", label: "Never" },
+  { value: "always", label: "始终" },
+  { value: "unfocused", label: "窗口失焦时" },
+  { value: "never", label: "从不" },
 ];
 
 // ── Component ──
@@ -93,8 +93,8 @@ export const NotificationsSettings = memo(function NotificationsSettings({
   return (
     <div className="flex h-full flex-col">
       <SettingsHeader
-        title="Notifications"
-        description="Configure when OS notifications and sounds play for different events."
+        title="通知"
+        description="配置不同事件触发系统通知和提示音的时机。"
       />
 
       <ScrollArea className="min-h-0 flex-1">
@@ -107,7 +107,7 @@ export const NotificationsSettings = memo(function NotificationsSettings({
 
               {/* Two setting rows per event: OS notification + sound */}
               <div className="flex flex-col">
-                <SettingRow label="OS Notification">
+                <SettingRow label="系统通知">
                   <div className="flex items-center gap-1.5">
                     <MonitorSmartphone className="h-3.5 w-3.5 text-muted-foreground/50" />
                     <SettingsSelect
@@ -120,7 +120,7 @@ export const NotificationsSettings = memo(function NotificationsSettings({
                   </div>
                 </SettingRow>
 
-                <SettingRow label="Sound">
+                <SettingRow label="提示音">
                   <div className="flex items-center gap-1.5">
                     <Volume2 className="h-3.5 w-3.5 text-muted-foreground/50" />
                     <SettingsSelect

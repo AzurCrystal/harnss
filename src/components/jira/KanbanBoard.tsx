@@ -56,7 +56,7 @@ export const KanbanBoard = React.memo(function KanbanBoard({
 
   if (issueCount === 0) {
     return (
-      <div className="p-4 text-center text-muted-foreground text-sm">No issues found in this board</div>
+      <div className="p-4 text-center text-muted-foreground text-sm">此看板中没有问题</div>
     );
   }
 

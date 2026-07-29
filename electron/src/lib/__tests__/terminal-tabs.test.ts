@@ -35,8 +35,8 @@ describe("terminal tabs state", () => {
     ])).toEqual({
       default: {
         tabs: [
-          { id: "term-a", terminalId: "term-a", label: "Terminal 1" },
-          { id: "term-b", terminalId: "term-b", label: "Terminal 2" },
+          { id: "term-a", terminalId: "term-a", label: "终端 1" },
+          { id: "term-b", terminalId: "term-b", label: "终端 2" },
         ],
         activeTabId: "term-b",
       },

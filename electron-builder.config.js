@@ -95,6 +95,16 @@ module.exports = {
     "node_modules/@anthropic-ai/claude-agent-sdk/manifest*.json",
   ],
 
+  // OMP binary from our fork (AzurCrystal/oh-my-pi GitHub Releases).
+  // CI downloads the platform-specific binary into build/omp/ before packaging.
+  extraResources: [
+    {
+      from: "build/omp/${os}",
+      to: "omp",
+      filter: ["**/*"],
+    },
+  ],
+
   npmRebuild: true,
   nodeGypRebuild: false,
   includePdb: false,

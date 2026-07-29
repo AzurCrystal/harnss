@@ -50,7 +50,7 @@ const InlineFileChange = memo(function InlineFileChange({
           )}
         </span>
         <span className="text-muted-foreground/40 capitalize text-[10px] shrink-0">
-          {change.changeType === "created" ? "new" : "modified"}
+          {change.changeType === "created" ? "新增" : "已修改"}
         </span>
         <OpenInEditorButton
           filePath={change.filePath}
@@ -77,7 +77,7 @@ const InlineFileChange = memo(function InlineFileChange({
               />
             ) : (
               <div className="px-3 py-2 text-xs text-muted-foreground/50 italic">
-                Empty file
+                空文件
               </div>
             )
           )}
@@ -121,15 +121,15 @@ export const TurnChangesSummary = memo(function TurnChangesSummary({
   // Compact file name list for collapsed view (truncate if > 3 files)
   const compactFileList = useMemo(() => {
     const names = uniqueFiles.map((f) => f.fileName);
-    if (names.length <= 3) return names.join(", ");
-    return `${names.slice(0, 3).join(", ")} +${names.length - 3} more`;
+    if (names.length <= 3) return names.join("、");
+    return `${names.slice(0, 3).join("、")} 等 ${names.length} 个`;
   }, [uniqueFiles]);
 
   // Stats text: "2 modified · 1 new"
   const statsText = useMemo(() => {
     const parts: string[] = [];
-    if (summary.modifiedCount > 0) parts.push(`${summary.modifiedCount} modified`);
-    if (summary.createdCount > 0) parts.push(`${summary.createdCount} new`);
+    if (summary.modifiedCount > 0) parts.push(`${summary.modifiedCount} 个已修改`);
+    if (summary.createdCount > 0) parts.push(`${summary.createdCount} 个新增`);
     return parts.join(" · ");
   }, [summary.modifiedCount, summary.createdCount]);
 
@@ -155,7 +155,7 @@ export const TurnChangesSummary = memo(function TurnChangesSummary({
 
           <span className="flex-1 min-w-0 truncate">
             <span className="font-medium text-foreground/80">
-              {summary.fileCount} file{summary.fileCount !== 1 ? "s" : ""} changed
+              {summary.fileCount} 个文件已更改
             </span>
             <span className="ms-1.5 text-xs text-muted-foreground/60">
               {compactFileList}

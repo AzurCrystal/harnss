@@ -164,7 +164,7 @@ export function initAutoUpdater(
           shell.openExternal(releaseUrl);
           const win = getMainWindow();
           win?.webContents.send("updater:install-error", {
-            message: "Automatic install failed. The download page has been opened — please install manually.",
+            message: "自动安装失败。已打开下载页面，请手动安装。",
           });
         }
         return;
@@ -178,7 +178,7 @@ export function initAutoUpdater(
         log("UPDATER_ERR", "Cannot install: no update has been downloaded yet");
         const win = getMainWindow();
         win?.webContents.send("updater:install-error", {
-          message: "Update failed to download. Try downloading the latest version manually.",
+          message: "更新下载失败。请手动下载最新版本。",
         });
         return;
       }

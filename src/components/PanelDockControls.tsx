@@ -20,7 +20,7 @@ export const PanelDockControls = memo(function PanelDockControls({
   moveIcon,
 }: PanelDockControlsProps) {
   const MoveIcon = moveIcon ?? (isBottom ? ArrowRight : ArrowDown);
-  const resolvedMoveLabel = moveLabel ?? (isBottom ? "Move to side" : "Move to bottom");
+  const resolvedMoveLabel = moveLabel ?? (isBottom ? "移到侧边" : "移到底部");
 
   return (
     <>
@@ -51,7 +51,7 @@ export const PanelDockControls = memo(function PanelDockControls({
           </button>
         </TooltipTrigger>
         <TooltipContent side="left" sideOffset={8}>
-          <p className="text-xs font-medium">Drag to dock</p>
+          <p className="text-xs font-medium">拖拽以停靠</p>
         </TooltipContent>
       </Tooltip>
     </>

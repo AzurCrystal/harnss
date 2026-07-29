@@ -126,7 +126,7 @@ export function readBrowserSession(persistKey: string): PersistedBrowserSession 
       if (!tab || typeof tab !== "object") return [];
       if (typeof tab.id !== "string" || tab.id.trim().length === 0) return [];
       if (typeof tab.url !== "string") return [];
-      const title = typeof tab.title === "string" && tab.title.trim().length > 0 ? tab.title : "New Tab";
+      const title = typeof tab.title === "string" && tab.title.trim().length > 0 ? tab.title : "新标签页";
       return [{
         id: tab.id,
         url: tab.url,

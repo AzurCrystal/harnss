@@ -2,14 +2,12 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useSettingsStore } from "@/stores/settings-store";
-import { useAgentContext } from "@/components/AgentContext";
 import { WIZARD_STEPS, WELCOME_COMPLETED_KEY, springTransition } from "./shared";
 import { StepIndicator } from "./StepIndicator";
 import { WelcomeStep } from "./WelcomeStep";
 import { AppearanceStep } from "./AppearanceStep";
 import { PermissionsStep } from "./PermissionsStep";
 import { ProjectStep } from "./ProjectStep";
-import { AgentsStep } from "./AgentsStep";
 import { FeatureTourStep } from "./FeatureTourStep";
 import { ReadyStep } from "./ReadyStep";
 
@@ -49,7 +47,6 @@ export function WelcomeWizard({
   hasProjects,
   onComplete,
 }: WelcomeWizardProps) {
-  const { agents, saveAgent, deleteAgent } = useAgentContext();
   const islandLayout = useSettingsStore((s) => s.islandLayout);
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -173,14 +170,6 @@ export function WelcomeWizard({
                   hasProjects={hasProjects}
                 />
               )}
-              {stepId === "agents" && (
-                <AgentsStep
-                  {...stepProps}
-                  agents={agents}
-                  onSaveAgent={saveAgent}
-                  onDeleteAgent={deleteAgent}
-                />
-              )}
               {stepId === "tour" && <FeatureTourStep {...stepProps} />}
               {stepId === "ready" && (
                 <ReadyStep
@@ -200,7 +189,7 @@ export function WelcomeWizard({
                 onClick={skip}
                 className="text-sm text-muted-foreground/50 transition-colors hover:text-muted-foreground"
               >
-                Skip
+                跳过
               </button>
             ) : !isLast ? (
               <button
@@ -208,7 +197,7 @@ export function WelcomeWizard({
                 className="flex items-center gap-1 text-sm text-muted-foreground/50 transition-colors hover:text-muted-foreground"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
-                Back
+                上一步
               </button>
             ) : null}
           </div>
@@ -221,7 +210,7 @@ export function WelcomeWizard({
                 onClick={goNext}
                 className="flex items-center gap-1 text-sm font-medium text-foreground/60 transition-colors hover:text-foreground"
               >
-                Next
+                下一步
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
             )}

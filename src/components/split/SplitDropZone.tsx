@@ -49,7 +49,7 @@ export const SplitDropZone = memo(function SplitDropZone({
           <Plus className="h-4 w-4" />
         </div>
         <span className="max-w-[160px] truncate text-xs font-medium">
-          {label ?? session?.title ?? "Drop to open"}
+          {label ?? session?.title ?? "拖放到此处打开"}
         </span>
       </div>
     </motion.div>

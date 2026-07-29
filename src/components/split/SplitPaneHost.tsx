@@ -1,4 +1,4 @@
-import type { ChatSession, EngineId } from "@/types";
+import type { ChatSession } from "@/types";
 import type { SessionPaneState } from "@/hooks/session/useSessionPane";
 import type { SessionPaneBootstrap } from "@/hooks/session/types";
 import { useExtraPaneLoader } from "@/hooks/session/useExtraPaneLoader";
@@ -11,14 +11,12 @@ interface SplitPaneHostRenderData {
 
 interface SplitPaneHostProps {
   sessionId: string;
-  acpPermissionBehavior: "ask" | "auto_accept" | "allow_all";
   loadBootstrap: (sessionId: string) => Promise<SessionPaneBootstrap | null>;
   children: (data: SplitPaneHostRenderData) => React.ReactNode;
 }
 
 export function SplitPaneHost({
   sessionId,
-  acpPermissionBehavior,
   loadBootstrap,
   children,
 }: SplitPaneHostProps) {
@@ -28,22 +26,17 @@ export function SplitPaneHost({
   });
 
   const readySession = loader.readyId ? loader.session : null;
-  const activeEngine: EngineId = readySession?.engine ?? "claude";
   const paneState = useSessionPane({
     activeSessionId: loader.readyId,
-    activeEngine,
-    claudeSessionId: activeEngine === "claude" ? loader.readyId : null,
-    acpSessionId: activeEngine === "acp" ? loader.readyId : null,
-    codexSessionId: activeEngine === "codex" ? loader.readyId : null,
-    codexSessionModel: activeEngine === "codex" ? readySession?.model : undefined,
-    codexPlanModeEnabled: activeEngine === "codex" ? !!readySession?.planMode : false,
+    cwd: loader.cwd,
     initialMessages: loader.initialMessages,
     initialMeta: loader.initialMeta,
     initialPermission: loader.initialPermission,
-    initialConfigOptions: loader.initialConfigOptions,
+    initialSupportedModels: loader.initialSupportedModels,
+    initialOmpModels: loader.initialOmpModels,
+    initialThinkingLevels: loader.initialThinkingLevels,
+    initialThinkingLevel: loader.initialThinkingLevel,
     initialSlashCommands: loader.initialSlashCommands,
-    initialRawAcpPermission: loader.initialRawAcpPermission,
-    acpPermissionBehavior,
   });
 
   return <>{children({ session: readySession, paneState })}</>;

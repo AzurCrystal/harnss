@@ -213,7 +213,7 @@ const OverlayContent = memo(function OverlayContent({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" sideOffset={4}>
-                  <p className="text-xs">Open in Jira</p>
+                  <p className="text-xs">在 Jira 中打开</p>
                 </TooltipContent>
               </Tooltip>
               <button
@@ -270,7 +270,7 @@ const OverlayContent = memo(function OverlayContent({
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <span className="text-muted-foreground/60">Assigned to: </span>
+                    <span className="text-muted-foreground/60">负责人：</span>
                     {issue.assignee.displayName}
                   </div>
                 </div>
@@ -279,7 +279,7 @@ const OverlayContent = memo(function OverlayContent({
               {/* Description */}
               {descriptionMarkdown ? (
                 <div className="space-y-1.5">
-                  <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Description</h3>
+                  <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">描述</h3>
                   <div className="prose dark:prose-invert prose-sm max-w-none text-foreground/80 wrap-break-word">
                     <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
                       {descriptionMarkdown}
@@ -287,7 +287,7 @@ const OverlayContent = memo(function OverlayContent({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground/40 italic">No description provided</p>
+                <p className="text-sm text-muted-foreground/40 italic">未提供描述</p>
               )}
 
               {/* Comments */}
@@ -296,7 +296,7 @@ const OverlayContent = memo(function OverlayContent({
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h3 className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
                       <MessageSquare className="h-3 w-3" />
-                      Comments
+                      评论
                     </h3>
                     {!loadingComments && (
                       <Badge variant="outline" className="text-[10px] text-muted-foreground/70">
@@ -310,7 +310,7 @@ const OverlayContent = memo(function OverlayContent({
                   {loadingComments ? (
                     <div className="flex items-center gap-2 py-2">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/40" />
-                      <span className="text-xs text-muted-foreground/40">Loading comments...</span>
+                      <span className="text-xs text-muted-foreground/40">加载评论中…</span>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -332,7 +332,7 @@ const OverlayContent = memo(function OverlayContent({
                               <div className="text-xs font-medium text-foreground/75">{comment.author}</div>
                               {comment.created && (
                                 <span className="text-[10px] text-muted-foreground/40">
-                                  {new Date(comment.created).toLocaleDateString(undefined, {
+                                  {new Date(comment.created).toLocaleDateString("zh-CN", {
                                     month: "short",
                                     day: "numeric",
                                     year: "numeric",

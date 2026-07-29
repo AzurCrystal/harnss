@@ -1,288 +1,516 @@
-import type { BackgroundAgent } from "@/types";
-import type { TaskStartedEvent, TaskProgressEvent, TaskNotificationEvent, ToolProgressEvent } from "@/types";
-import { capture } from "@/lib/analytics/analytics";
+import type { BackgroundAgent, BackgroundAgentActivity } from "@/types";
+import type {
+  OmpRpcFrame,
+  OmpSessionFrame,
+  OmpSubagentEventPayload,
+  OmpSubagentLifecyclePayload,
+  OmpSubagentProgress,
+  OmpSubagentProgressPayload,
+  OmpSubagentRecentTool,
+  OmpSubagentSnapshot,
+  OmpSubagentSource,
+  OmpSubagentStatus,
+} from "@shared/types/omp";
 
 type Listener = (sessionId: string) => void;
 
-interface AsyncAgentInfo {
-  toolUseId: string;
-  agentId: string;
-  description: string;
-  outputFile: string;
-}
-
 /**
- * Shared store for event-driven background agent tracking.
+ * OMP-only subagent registry for the existing Agents panel.
  *
- * Only tracks BACKGROUND (async) agents — foreground agents use the
- * existing parentToolMap/subagentSteps system in useClaude.
- *
- * Registration: eagerly from task_started (pending), confirmed from
- * tool_result with isAsync: true. Foreground agents cleaned up via
- * removePendingAgent when their tool_result arrives without isAsync.
- *
- * Updates: from task_progress events (live metrics + AI summaries),
- * tool_progress events (current tool), and task-notification XML
- * in user messages (completion).
+ * The registry snapshot reports live subagents only; terminal lifecycle frames
+ * are retained here until the user dismisses their card.
  */
 class BackgroundAgentStore {
   private agents = new Map<string, Map<string, BackgroundAgent>>();
   private listeners = new Set<Listener>();
-  /** Cached arrays per session — only recreated when agents change */
   private snapshotCache = new Map<string, BackgroundAgent[]>();
 
-  subscribe(cb: Listener): () => void {
-    this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
+  subscribe(callback: Listener): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
   }
 
-  private notify(sessionId: string): void {
-    // Invalidate cached snapshot so useSyncExternalStore sees a new reference
-    this.snapshotCache.delete(sessionId);
-    for (const cb of this.listeners) cb(sessionId);
-  }
-
-  /** Returns a referentially stable array (same ref if unchanged). */
   getAgents(sessionId: string): BackgroundAgent[] {
     const cached = this.snapshotCache.get(sessionId);
     if (cached) return cached;
-    const map = this.agents.get(sessionId);
-    // Filter out pending agents that haven't been confirmed yet
-    const arr = map
-      ? Array.from(map.values()).filter((a) => !a.isPending)
+    const agents = this.agents.get(sessionId);
+    const snapshot = agents
+      ? Array.from(agents.values()).sort((left, right) => left.index - right.index || left.subagentId.localeCompare(right.subagentId))
       : [];
-    this.snapshotCache.set(sessionId, arr);
-    return arr;
+    this.snapshotCache.set(sessionId, snapshot);
+    return snapshot;
   }
 
   clearSession(sessionId: string): void {
-    if (!this.agents.has(sessionId)) return;
-    this.agents.delete(sessionId);
+    if (!this.agents.delete(sessionId)) return;
     this.notify(sessionId);
   }
 
-  // ── Phase 4: Early registration from task_started ──
-
-  /**
-   * Eagerly register an agent from task_started event.
-   * Creates a pending entry that will be confirmed by registerAsyncAgent
-   * or removed by removePendingAgent (for foreground agents).
-   */
-  handleTaskStarted(sessionId: string, event: TaskStartedEvent): void {
-    if (!event.tool_use_id) return;
-    let map = this.agents.get(sessionId);
-    if (!map) {
-      map = new Map();
-      this.agents.set(sessionId, map);
-    }
-    // Don't overwrite if already registered (registerAsyncAgent beat us)
-    if (map.has(event.tool_use_id)) return;
-
-    map.set(event.tool_use_id, {
-      agentId: event.task_id,
-      description: event.description,
-      prompt: "",
-      outputFile: "",
-      launchedAt: Date.now(),
-      status: "running",
-      activity: [],
-      toolUseId: event.tool_use_id,
-      taskId: event.task_id,
-      isPending: true,
-    });
-    // Notify so pending→confirmed transition is visible immediately
+  dismissAgent(sessionId: string, subagentId: string): void {
+    const agents = this.agents.get(sessionId);
+    if (!agents?.delete(subagentId)) return;
     this.notify(sessionId);
   }
 
-  /**
-   * Register a background agent from tool_result with isAsync: true.
-   * If an entry already exists from handleTaskStarted, confirms it
-   * by filling in details and clearing isPending.
-   */
-  registerAsyncAgent(sessionId: string, info: AsyncAgentInfo): void {
-    let map = this.agents.get(sessionId);
-    if (!map) {
-      map = new Map();
-      this.agents.set(sessionId, map);
-    }
+  /** Consume only official OMP subagent snapshots and frames. */
+  handleOmpFrame(frame: OmpSessionFrame): void {
+    switch (frame.type) {
+      case "response": {
+        if (frame.success !== true || frame.command !== "get_subagents") return;
+        const snapshots = readSubagentSnapshots(frame.data);
+        if (snapshots && this.applySnapshots(frame._sessionId, snapshots)) this.notify(frame._sessionId);
+        return;
+      }
 
-    const existing = map.get(info.toolUseId);
-    if (existing) {
-      // Confirm the pending entry from task_started
-      existing.agentId = info.agentId;
-      existing.description = info.description;
-      existing.outputFile = info.outputFile;
-      existing.taskId = info.agentId;
-      existing.isPending = false;
-    } else {
-      map.set(info.toolUseId, {
-        agentId: info.agentId,
-        description: info.description,
-        prompt: "",
-        outputFile: info.outputFile,
-        launchedAt: Date.now(),
-        status: "running",
-        activity: [],
-        toolUseId: info.toolUseId,
-        taskId: info.agentId,
-      });
-    }
-    capture("background_agent_created");
-    this.notify(sessionId);
-  }
+      case "subagent_lifecycle": {
+        const payload = readLifecyclePayload(frame.payload);
+        if (payload && this.applyLifecycle(frame._sessionId, payload)) this.notify(frame._sessionId);
+        return;
+      }
 
-  /**
-   * Remove a pending agent that turned out to be foreground (not async).
-   * Called when tool_result arrives for Task/Agent without isAsync flag.
-   */
-  removePendingAgent(sessionId: string, toolUseId: string): void {
-    const map = this.agents.get(sessionId);
-    if (!map) return;
-    const agent = map.get(toolUseId);
-    if (agent?.isPending) {
-      map.delete(toolUseId);
-      this.notify(sessionId);
+      case "subagent_progress": {
+        const payload = readProgressPayload(frame.payload);
+        if (payload && this.applyProgress(frame._sessionId, payload)) this.notify(frame._sessionId);
+        return;
+      }
+
+      case "subagent_event": {
+        const payload = readEventPayload(frame.payload);
+        if (payload && this.applyEvent(frame._sessionId, payload)) this.notify(frame._sessionId);
+        return;
+      }
     }
   }
 
-  // ── Phase 1: Progress summaries ──
+  private applySnapshots(sessionId: string, snapshots: OmpSubagentSnapshot[]): boolean {
+    let changed = false;
+    for (const snapshot of snapshots) {
+      changed = this.upsertSnapshot(sessionId, snapshot) || changed;
+    }
+    return changed;
+  }
 
-  handleTaskProgress(sessionId: string, event: TaskProgressEvent): void {
-    if (!event.tool_use_id) return;
-    const agent = this.agents.get(sessionId)?.get(event.tool_use_id);
-    // Only update agents we've registered (i.e. background agents)
-    if (!agent) return;
-
-    agent.usage = {
-      totalTokens: event.usage.total_tokens,
-      toolUses: event.usage.tool_uses,
-      durationMs: event.usage.duration_ms,
+  private applyLifecycle(sessionId: string, payload: OmpSubagentLifecyclePayload): boolean {
+    const agents = this.getOrCreate(sessionId);
+    const wasTerminal = isTerminalStatus(agents.get(payload.id)?.status);
+    const snapshot: OmpSubagentSnapshot = {
+      id: payload.id,
+      index: payload.index,
+      agent: payload.agent,
+      agentSource: payload.agentSource,
+      ...(payload.description ? { description: payload.description } : {}),
+      status: payload.status === "started" ? "running" : payload.status,
+      ...(payload.sessionFile ? { sessionFile: payload.sessionFile } : {}),
+      lastUpdate: Date.now(),
+      ...(payload.parentToolCallId ? { parentToolCallId: payload.parentToolCallId } : {}),
     };
+    const changed = this.upsertSnapshot(sessionId, snapshot);
+    const agent = this.agents.get(sessionId)?.get(payload.id);
+    if (!agent || payload.status === "started") return changed;
 
-    // Capture AI-generated progress summary
-    if (event.summary) {
-      agent.progressSummary = event.summary;
-    }
-
-    if (event.last_tool_name) {
-      agent.activity.push({
-        type: "tool_call",
-        toolName: event.last_tool_name,
-        summary: event.description,
-        timestamp: Date.now(),
+    agent.currentTool = null;
+    if (!wasTerminal && payload.status !== "completed") {
+      appendActivity(agent, {
+        type: "error",
+        summary: payload.status === "aborted" ? "子智能体已中止" : "子智能体失败",
+        timestamp: snapshot.lastUpdate,
       });
     }
-
-    this.notify(sessionId);
+    return true;
   }
 
-  // ── Phase 3: Tool progress routing ──
-
-  handleToolProgress(sessionId: string, event: ToolProgressEvent): void {
-    if (!event.task_id) return;
-    const map = this.agents.get(sessionId);
-    if (!map) return;
-    for (const agent of map.values()) {
-      if (agent.taskId === event.task_id) {
-        agent.currentTool = {
-          name: event.tool_name,
-          elapsedSeconds: event.elapsed_time_seconds,
-        };
-        this.notify(sessionId);
-        return;
-      }
-    }
-  }
-
-  handleTaskNotification(sessionId: string, event: TaskNotificationEvent): void {
-    if (!event.tool_use_id) return;
-    const agent = this.agents.get(sessionId)?.get(event.tool_use_id);
-    if (!agent) return;
-
-    agent.status = event.status === "completed" ? "completed" : "error";
-    agent.result = event.summary || undefined;
-    agent.outputFile = event.output_file;
-    agent.currentTool = null;
-    if (event.usage) {
-      agent.usage = {
-        totalTokens: event.usage.total_tokens,
-        toolUses: event.usage.tool_uses,
-        durationMs: event.usage.duration_ms,
-      };
-    }
-    capture("background_agent_completed", {
-      status: agent.status,
-      duration_ms: event.usage?.duration_ms,
+  private applyProgress(sessionId: string, payload: OmpSubagentProgressPayload): boolean {
+    const progress = payload.progress;
+    return this.upsertSnapshot(sessionId, {
+      id: progress.id,
+      index: payload.index,
+      agent: payload.agent,
+      agentSource: payload.agentSource,
+      ...(progress.description ? { description: progress.description } : {}),
+      status: progress.status,
+      task: payload.task,
+      ...(payload.assignment ? { assignment: payload.assignment } : {}),
+      ...(payload.sessionFile ? { sessionFile: payload.sessionFile } : {}),
+      lastUpdate: Date.now(),
+      progress,
+      ...(payload.parentToolCallId ? { parentToolCallId: payload.parentToolCallId } : {}),
     });
-
-    this.notify(sessionId);
   }
 
-  /**
-   * Parse task completion from user text messages containing <task-notification> XML.
-   * The SDK delivers task completion as a user text message, NOT as a system event.
-   */
-  handleUserMessage(sessionId: string, content: string): void {
-    if (!content.includes("<task-notification>")) return;
+  private applyEvent(sessionId: string, payload: OmpSubagentEventPayload): boolean {
+    const agent = this.agents.get(sessionId)?.get(payload.id);
+    if (!agent || isTerminalStatus(agent.status)) return false;
 
-    const toolUseId = extractXmlTag(content, "tool-use-id");
-    if (!toolUseId) return;
-
-    const agent = this.agents.get(sessionId)?.get(toolUseId);
-    if (!agent) return;
-
-    const status = extractXmlTag(content, "status");
-    agent.status = status === "completed" ? "completed" : "error";
-    agent.result = extractXmlTag(content, "summary") || undefined;
-    agent.currentTool = null;
-
-    const tokens = extractXmlTag(content, "total_tokens");
-    const tools = extractXmlTag(content, "tool_uses");
-    const duration = extractXmlTag(content, "duration_ms");
-    if (tokens) {
-      agent.usage = {
-        totalTokens: parseInt(tokens, 10) || 0,
-        toolUses: parseInt(tools ?? "0", 10) || 0,
-        durationMs: parseInt(duration ?? "0", 10) || 0,
+    const event = payload.event;
+    const eventToolName = typeof event.toolName === "string" ? event.toolName : undefined;
+    if (event.type === "tool_execution_start" || event.type === "tool_execution_update") {
+      const toolName = eventToolName ?? agent.currentTool?.name;
+      if (!toolName) return false;
+      const start = event.startedAtMs;
+      agent.currentTool = {
+        name: toolName,
+        elapsedSeconds: typeof start === "number" ? Math.max(0, (Date.now() - start) / 1000) : 0,
       };
+      return true;
     }
 
-    this.notify(sessionId);
+    if (event.type !== "tool_execution_end") return false;
+    const toolName = eventToolName ?? agent.currentTool?.name ?? "工具";
+    const isError = event.isError === true;
+    agent.currentTool = null;
+    appendActivity(agent, {
+      type: isError ? "error" : "tool_call",
+      ...(isError ? {} : { toolName }),
+      summary: textContent(event.result) || (isError ? `${toolName} 执行失败` : toolName),
+      timestamp: Date.now(),
+    });
+    return true;
   }
 
-  // ── Phase 2: Stop agent ──
+  private upsertSnapshot(sessionId: string, snapshot: OmpSubagentSnapshot): boolean {
+    const agents = this.getOrCreate(sessionId);
+    const existing = agents.get(snapshot.id);
+    const status = toPanelStatus(snapshot.status);
+    if (existing && isTerminalStatus(existing.status) && status === "running") return false;
 
-  /** Optimistically mark an agent as stopping before the IPC completes. */
-  setAgentStopping(sessionId: string, agentId: string): void {
-    const map = this.agents.get(sessionId);
-    if (!map) return;
-    for (const agent of map.values()) {
-      if (agent.agentId === agentId && agent.status === "running") {
-        agent.status = "stopping";
-        this.notify(sessionId);
-        return;
-      }
+    if (!existing) {
+      agents.set(snapshot.id, createAgent(sessionId, snapshot));
+      return true;
     }
+
+    if (isTerminalStatus(existing.status) && isTerminalStatus(status)) {
+      if (snapshot.sessionFile && !existing.sessionFile) {
+        existing.sessionFile = snapshot.sessionFile;
+        return true;
+      }
+      return false;
+    }
+
+    existing.index = snapshot.index;
+    existing.description = snapshot.description
+      ?? snapshot.progress?.description
+      ?? snapshot.task
+      ?? snapshot.progress?.task
+      ?? existing.description
+      ?? snapshot.agent;
+    existing.prompt = snapshot.task ?? snapshot.progress?.task ?? snapshot.assignment ?? snapshot.progress?.assignment ?? existing.prompt;
+    existing.status = status;
+    if (snapshot.sessionFile) existing.sessionFile = snapshot.sessionFile;
+    if (snapshot.progress) applyProgress(existing, snapshot.progress, snapshot.lastUpdate);
+    if (isTerminalStatus(status)) existing.currentTool = null;
+    return true;
   }
 
-  dismissAgent(sessionId: string, agentId: string): void {
-    const map = this.agents.get(sessionId);
-    if (!map) return;
-    for (const [key, agent] of map) {
-      if (agent.agentId === agentId) {
-        map.delete(key);
-        break;
-      }
+  private getOrCreate(sessionId: string): Map<string, BackgroundAgent> {
+    let agents = this.agents.get(sessionId);
+    if (!agents) {
+      agents = new Map();
+      this.agents.set(sessionId, agents);
     }
-    this.notify(sessionId);
+    return agents;
+  }
+
+  private notify(sessionId: string): void {
+    this.snapshotCache.delete(sessionId);
+    for (const listener of this.listeners) listener(sessionId);
   }
 }
 
-/** Extract text content of an XML-like tag from a string. */
-function extractXmlTag(text: string, tag: string): string | null {
-  const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`);
-  const match = re.exec(text);
-  return match ? match[1].trim() : null;
+function createAgent(sessionId: string, snapshot: OmpSubagentSnapshot): BackgroundAgent {
+  const progress = snapshot.progress;
+  const agent: BackgroundAgent = {
+    parentSessionId: sessionId,
+    subagentId: snapshot.id,
+    index: snapshot.index,
+    ...(snapshot.sessionFile ? { sessionFile: snapshot.sessionFile } : {}),
+    description: snapshot.description
+      ?? snapshot.progress?.description
+      ?? snapshot.task
+      ?? snapshot.progress?.task
+      ?? snapshot.agent,
+    prompt: snapshot.task ?? snapshot.progress?.task ?? snapshot.assignment ?? snapshot.progress?.assignment ?? "",
+    launchedAt: Math.max(0, snapshot.lastUpdate - (progress?.durationMs ?? 0)),
+    status: toPanelStatus(snapshot.status),
+    activity: activityFromProgress(progress, snapshot.lastUpdate),
+  };
+  if (progress) applyProgress(agent, progress, snapshot.lastUpdate);
+  if (isTerminalStatus(agent.status)) agent.currentTool = null;
+  return agent;
+}
+
+function applyProgress(agent: BackgroundAgent, progress: OmpSubagentProgress, lastUpdate: number): void {
+  agent.usage = {
+    totalTokens: progress.tokens,
+    toolUses: progress.toolCount,
+    durationMs: progress.durationMs,
+  };
+  agent.progressSummary = progress.currentToolArgs
+    ?? progress.lastIntent
+    ?? progress.assignment
+    ?? progress.description
+    ?? progress.task;
+  agent.currentTool = progress.currentTool
+    ? {
+        name: progress.currentTool,
+        elapsedSeconds: progress.currentToolStartMs === undefined
+          ? 0
+          : Math.max(0, (lastUpdate - progress.currentToolStartMs) / 1000),
+      }
+    : null;
+  if (agent.activity.length === 0) agent.activity = activityFromProgress(progress, lastUpdate);
+}
+
+function activityFromProgress(progress: OmpSubagentProgress | undefined, lastUpdate: number): BackgroundAgentActivity[] {
+  if (!progress) return [];
+  const activity: BackgroundAgentActivity[] = [];
+  for (const tool of progress.recentTools) {
+    activity.push({
+      type: "tool_call",
+      toolName: tool.tool,
+      summary: tool.args,
+      timestamp: tool.endMs,
+    });
+  }
+  for (let index = 0; index < progress.recentOutput.length; index += 1) {
+    const text = progress.recentOutput[index];
+    if (text) activity.push({ type: "text", summary: text, timestamp: lastUpdate + index });
+  }
+  return activity.sort((left, right) => left.timestamp - right.timestamp);
+}
+
+function appendActivity(agent: BackgroundAgent, activity: BackgroundAgentActivity): void {
+  const previous = agent.activity[agent.activity.length - 1];
+  if (
+    previous
+    && previous.type === activity.type
+    && previous.toolName === activity.toolName
+    && previous.summary === activity.summary
+  ) return;
+  agent.activity.push(activity);
+}
+
+
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isSubagentSource(value: unknown): value is OmpSubagentSource {
+  return value === "bundled" || value === "user" || value === "project";
+}
+
+function isSubagentStatus(value: unknown): value is OmpSubagentStatus {
+  return value === "pending" || value === "running" || value === "completed" || value === "failed" || value === "aborted";
+}
+
+function optionalString(value: UnknownRecord, key: string): string | null | undefined {
+  const candidate = value[key];
+  return candidate === undefined || typeof candidate === "string" ? candidate : null;
+}
+
+function readRecentTools(value: unknown): OmpSubagentRecentTool[] | null {
+  if (!Array.isArray(value)) return null;
+  const tools: OmpSubagentRecentTool[] = [];
+  for (const item of value) {
+    if (!isRecord(item) || typeof item.tool !== "string" || typeof item.args !== "string" || typeof item.endMs !== "number") return null;
+    tools.push({ tool: item.tool, args: item.args, endMs: item.endMs });
+  }
+  return tools;
+}
+
+function readRecentOutput(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const output: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") return null;
+    output.push(item);
+  }
+  return output;
+}
+
+function readSubagentProgress(value: unknown): OmpSubagentProgress | null {
+  if (!isRecord(value)
+    || typeof value.index !== "number"
+    || typeof value.id !== "string"
+    || typeof value.agent !== "string"
+    || !isSubagentSource(value.agentSource)
+    || !isSubagentStatus(value.status)
+    || typeof value.task !== "string"
+    || typeof value.toolCount !== "number"
+    || typeof value.requests !== "number"
+    || typeof value.tokens !== "number"
+    || typeof value.cost !== "number"
+    || typeof value.durationMs !== "number") return null;
+
+  const recentTools = readRecentTools(value.recentTools);
+  const recentOutput = readRecentOutput(value.recentOutput);
+  const assignment = optionalString(value, "assignment");
+  const description = optionalString(value, "description");
+  if (!recentTools || !recentOutput || assignment === null || description === null) return null;
+
+  return {
+    index: value.index,
+    id: value.id,
+    agent: value.agent,
+    agentSource: value.agentSource,
+    status: value.status,
+    task: value.task,
+    ...(assignment !== undefined ? { assignment } : {}),
+    ...(description !== undefined ? { description } : {}),
+    recentTools,
+    recentOutput,
+    toolCount: value.toolCount,
+    requests: value.requests,
+    tokens: value.tokens,
+    cost: value.cost,
+    durationMs: value.durationMs,
+  };
+}
+
+function readSubagentSnapshot(value: unknown): OmpSubagentSnapshot | null {
+  if (!isRecord(value)
+    || typeof value.id !== "string"
+    || typeof value.index !== "number"
+    || typeof value.agent !== "string"
+    || !isSubagentSource(value.agentSource)
+    || !isSubagentStatus(value.status)
+    || typeof value.lastUpdate !== "number") return null;
+
+  const description = optionalString(value, "description");
+  const task = optionalString(value, "task");
+  const assignment = optionalString(value, "assignment");
+  const sessionFile = optionalString(value, "sessionFile");
+  const parentToolCallId = optionalString(value, "parentToolCallId");
+  const progress = value.progress === undefined ? undefined : readSubagentProgress(value.progress);
+  if (description === null || task === null || assignment === null || sessionFile === null || parentToolCallId === null || (value.progress !== undefined && !progress)) return null;
+
+  return {
+    id: value.id,
+    index: value.index,
+    agent: value.agent,
+    agentSource: value.agentSource,
+    status: value.status,
+    lastUpdate: value.lastUpdate,
+    ...(description !== undefined ? { description } : {}),
+    ...(task !== undefined ? { task } : {}),
+    ...(assignment !== undefined ? { assignment } : {}),
+    ...(sessionFile !== undefined ? { sessionFile } : {}),
+    ...(parentToolCallId !== undefined ? { parentToolCallId } : {}),
+    ...(progress ? { progress } : {}),
+  };
+}
+
+function readSubagentSnapshots(value: unknown): OmpSubagentSnapshot[] | null {
+  if (!isRecord(value) || !Array.isArray(value.subagents)) return null;
+  const snapshots: OmpSubagentSnapshot[] = [];
+  for (const item of value.subagents) {
+    const snapshot = readSubagentSnapshot(item);
+    if (!snapshot) return null;
+    snapshots.push(snapshot);
+  }
+  return snapshots;
+}
+
+function readLifecyclePayload(value: unknown): OmpSubagentLifecyclePayload | null {
+  if (!isRecord(value)
+    || typeof value.id !== "string"
+    || typeof value.index !== "number"
+    || typeof value.agent !== "string"
+    || !isSubagentSource(value.agentSource)
+    || (value.status !== "started" && value.status !== "completed" && value.status !== "failed" && value.status !== "aborted")) return null;
+
+  const description = optionalString(value, "description");
+  const sessionFile = optionalString(value, "sessionFile");
+  const parentToolCallId = optionalString(value, "parentToolCallId");
+  if (description === null || sessionFile === null || parentToolCallId === null) return null;
+
+  return {
+    id: value.id,
+    index: value.index,
+    agent: value.agent,
+    agentSource: value.agentSource,
+    status: value.status,
+    ...(description !== undefined ? { description } : {}),
+    ...(sessionFile !== undefined ? { sessionFile } : {}),
+    ...(parentToolCallId !== undefined ? { parentToolCallId } : {}),
+  };
+}
+
+function readProgressPayload(value: unknown): OmpSubagentProgressPayload | null {
+  if (!isRecord(value)
+    || typeof value.index !== "number"
+    || typeof value.agent !== "string"
+    || !isSubagentSource(value.agentSource)
+    || typeof value.task !== "string") return null;
+
+  const progress = readSubagentProgress(value.progress);
+  const assignment = optionalString(value, "assignment");
+  const sessionFile = optionalString(value, "sessionFile");
+  const parentToolCallId = optionalString(value, "parentToolCallId");
+  if (!progress || assignment === null || sessionFile === null || parentToolCallId === null) return null;
+
+  return {
+    index: value.index,
+    agent: value.agent,
+    agentSource: value.agentSource,
+    task: value.task,
+    progress,
+    ...(assignment !== undefined ? { assignment } : {}),
+    ...(sessionFile !== undefined ? { sessionFile } : {}),
+    ...(parentToolCallId !== undefined ? { parentToolCallId } : {}),
+  };
+}
+
+function readEventPayload(value: unknown): OmpSubagentEventPayload | null {
+  if (!isRecord(value) || typeof value.id !== "string" || !isRecord(value.event) || typeof value.event.type !== "string") return null;
+
+  const toolName = optionalString(value.event, "toolName");
+  const startedAtMs = value.event.startedAtMs;
+  const isError = value.event.isError;
+  if (toolName === null || (startedAtMs !== undefined && typeof startedAtMs !== "number") || (isError !== undefined && typeof isError !== "boolean")) return null;
+
+  const event: OmpRpcFrame = {
+    type: value.event.type,
+    ...(toolName !== undefined ? { toolName } : {}),
+    ...(startedAtMs !== undefined ? { startedAtMs } : {}),
+    ...(isError !== undefined ? { isError } : {}),
+    ...(value.event.result !== undefined ? { result: value.event.result } : {}),
+  };
+  return { id: value.id, event };
+}
+
+function toPanelStatus(status: OmpSubagentStatus | OmpSubagentLifecyclePayload["status"]): BackgroundAgent["status"] {
+  if (status === "completed") return "completed";
+  if (status === "failed" || status === "aborted") return "error";
+  return "running";
+}
+
+function isTerminalStatus(status: BackgroundAgent["status"] | undefined): boolean {
+  return status === "completed" || status === "error";
+}
+
+
+function textContent(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object" || !("content" in value)) return "";
+  const content = value.content;
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  const text: string[] = [];
+  for (const block of content) {
+    if (
+      !block
+      || typeof block !== "object"
+      || !("type" in block)
+      || block.type !== "text"
+      || !("text" in block)
+      || typeof block.text !== "string"
+    ) continue;
+    text.push(block.text);
+  }
+  return text.join("\n");
 }
 
 export const bgAgentStore = new BackgroundAgentStore();

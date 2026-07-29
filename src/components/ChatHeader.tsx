@@ -7,16 +7,16 @@ import { isMac } from "@/lib/utils";
 import type { AcpPermissionBehavior } from "@/types";
 
 const PERMISSION_MODE_LABELS: Record<string, string> = {
-  plan: "Plan",
-  default: "Ask Before Edits",
-  acceptEdits: "Accept Edits",
-  bypassPermissions: "Allow All",
+  plan: "计划",
+  default: "编辑前询问",
+  acceptEdits: "接受编辑",
+  bypassPermissions: "全部允许",
 };
 
 const ACP_PERMISSION_BEHAVIOR_LABELS: Record<AcpPermissionBehavior, string> = {
-  ask: "Ask",
-  auto_accept: "Auto Accept",
-  allow_all: "Allow All",
+  ask: "询问",
+  auto_accept: "自动接受",
+  allow_all: "全部允许",
 };
 
 interface ChatHeaderProps {
@@ -70,11 +70,11 @@ export const ChatHeader = memo(function ChatHeader({
 
   // Collect all session detail rows for the unified tooltip
   const detailRows: { label: string; value: string }[] = [];
-  if (model) detailRows.push({ label: "Model", value: model });
-  detailRows.push({ label: "Plan", value: planMode ? "On" : "Off" });
-  if (permissionDisplay) detailRows.push({ label: "Permissions", value: permissionDisplay });
-  if (totalCost > 0) detailRows.push({ label: "Cost", value: `$${totalCost.toFixed(4)}` });
-  if (sessionId) detailRows.push({ label: "Session", value: sessionId });
+  if (model) detailRows.push({ label: "模型", value: model });
+  detailRows.push({ label: "计划", value: planMode ? "开" : "关" });
+  if (permissionDisplay) detailRows.push({ label: "权限", value: permissionDisplay });
+  if (totalCost > 0) detailRows.push({ label: "费用", value: `$${totalCost.toFixed(4)}` });
+  if (sessionId) detailRows.push({ label: "会话", value: sessionId });
 
   const hasDetails = detailRows.length > 0;
   const showDevSeedButton = import.meta.env.DEV && !!showDevFill && !!onSeedDevExampleConversation;
@@ -113,13 +113,13 @@ export const ChatHeader = memo(function ChatHeader({
               <div className="space-y-0.5 text-xs">
                 {model && (
                   <div className="flex justify-between gap-4">
-                    <span className="opacity-70">Model</span>
+                    <span className="opacity-70">模型</span>
                     <span className="font-mono">{model}</span>
                   </div>
                 )}
                 {permissionDisplay && (
                   <div className="flex justify-between gap-4">
-                    <span className="opacity-70">Permissions</span>
+                    <span className="opacity-70">权限</span>
                     <span className="font-mono">{permissionDisplay}</span>
                   </div>
                 )}
@@ -135,7 +135,7 @@ export const ChatHeader = memo(function ChatHeader({
             islandLayout ? "relative top-px" : ""
           } ${macIslandTitlebarOffsetClass}`}
         />
-      ) : title && title !== "New Chat" ? (
+      ) : title && title !== "新对话" ? (
         <span
           className={`no-drag truncate leading-none text-sm font-medium text-foreground/80 ${
             islandLayout ? "relative top-px" : ""
@@ -161,7 +161,7 @@ export const ChatHeader = memo(function ChatHeader({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Close pane
+                关闭窗格
               </TooltipContent>
             </Tooltip>
           )}
@@ -173,16 +173,16 @@ export const ChatHeader = memo(function ChatHeader({
                   size="sm"
                   className="no-drag h-6 gap-1 px-2 text-[10px]"
                 >
-                  Dev Fill
+                  开发填充
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={onSeedDevExampleConversation}>
-                  Fill current chat
+                  填充当前对话
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onSeedDevExampleSpaceData}>
-                  Fill current space (3 projects, 10 chats)
+                  填充当前空间（3 个项目，10 个对话）
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -37,7 +37,7 @@ export function useFolderManager({ projects, setSessions }: UseFolderManagerOpti
   }, [projects]);
 
   const handleCreateFolder = useCallback(async (projectId: string) => {
-    const name = "New folder";
+    const name = "新建文件夹";
     try {
       const folder = await window.claude.folders.create(projectId, name);
       setFoldersByProject((prev) => ({

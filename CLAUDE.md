@@ -61,15 +61,14 @@ shared/
 electron/
 ├── dist/       # tsup build output (gitignored)
 └── src/
-    ├── ipc/    # IPC handlers (claude-sessions, acp-sessions, codex-sessions, projects, sessions,
-    │           #              settings, terminal, git, jira, mcp, spaces, files, folders, cc-import,
-    │           #              title-gen, agent-registry)
+    ├── ipc/    # IPC handlers (omp-sessions, projects, sessions, settings, terminal, git, jira,
+    │           #              mcp, spaces, files, folders, cc-import, title-gen)
     └── lib/    # Main-process utilities (logger, data-dir, app-settings, sdk,
                 #   error-utils, git-exec, jira-client, jira-store, jira-oauth-store, mcp-store,
                 #   mcp-oauth-flow, mcp-oauth-provider, mcp-oauth-store, acp-auth, claude-binary,
                 #   codex-binary, codex-rpc, migration, posthog, updater, glass, terminal-history,
                 #   json-file-store, safe-send, claude-model-cache, acp-utility-prompt,
-                #   codex-utility-prompt, agent-registry, prerelease-check)
+                #   codex-utility-prompt, prerelease-check)
                 #   └── __tests__/  # Main-process unit tests (sdk, acp-auth, updater, logger, etc.)
 
 src/
@@ -118,18 +117,16 @@ src/
 │                      #   useBrowserWebviewEvents, useProjectFiles, useMcpServers,
 │                      #   useSettingsCompat, useClickOutside, useContextMenuPosition,
 │                      #   useInlineRename, usePaneResize, useSpaceTheme, useStreamingTextReveal,
-│                      #   useAnnotationHistory, useAgentRegistry, useAgentStore,
-│                      #   useAcpAgentAutoUpdate, useBackgroundAgents, useFolderManager,
-│                      #   useSpaceSwitchCooldown, useBottomHeightResize, etc.)
+│                      #   useBackgroundAgents, useFolderManager, useSpaceSwitchCooldown,
+│                      #   useBottomHeightResize, etc.)
 ├── lib/               # Renderer utilities organized in subdirectories:
 │   ├── analytics/     #   analytics.ts, posthog.ts
-│   ├── background/    #   session-store.ts, claude/acp/codex-handler.ts, agent-store.ts, agent-store-utils.ts
+│   ├── background/    #   session-store.ts, claude/acp/codex-handler.ts, agent-store.ts
 │   ├── chat/          #   scroll.ts, virtualization.ts, thinking-animation.ts, todo-utils.ts,
 │   │                  #   turn-changes.ts, assistant-turn-divider.ts, annotation-types.ts, etc.
 │   ├── diff/          #   diff-stats.ts, patch-utils.ts, unified-diff.ts
 │   ├── engine/        #   protocol.ts, streaming-buffer.ts, acp-adapter.ts, codex-adapter.ts,
-│   │                  #   acp-utils.ts, permission-queue.ts, acp-agent-registry.ts,
-│   │                  #   acp-task-adapter.ts, acp-agent-updates.ts, etc.
+│   │                  #   acp-utils.ts, permission-queue.ts, acp-task-adapter.ts, etc.
 │   ├── git/           #   discover-repos-cache.ts
 │   ├── layout/        #   constants.ts, split-layout.ts, split-view-state.ts, workspace-constraints.ts
 │   ├── session/       #   derived-data.ts, records.ts, space-projects.ts
@@ -238,14 +235,6 @@ The main process uses `@anthropic-ai/claude-agent-sdk` (ESM-only, loaded via `aw
 - `codex:version` → returns the Codex binary version string
 - `codex:binary-status` → returns binary detection status
 
-**IPC API — Agent Registry:**
-
-- `agents:list` → returns all installed agents (`InstalledAgent[]`)
-- `agents:save(agent)` → saves/upserts an agent definition to disk
-- `agents:delete(id)` → removes an agent from the registry
-- `agents:update-cached-config(agentId, configOptions)` → caches `ACPConfigOption[]` per agent for fast re-use
-- `agents:get-platform-keys` → returns platform-specific config key list for registry agents
-- `agents:check-binaries(agents)` → batch-checks whether binary-only agents are installed on the system PATH; returns per-agent availability status
 
 **IPC API — Projects:**
 
@@ -670,8 +659,6 @@ Types shared between electron and renderer live in `shared/types/`. Both tsconfi
 - **`shared/types/engine.ts`** — `EngineId`, `AppPermissionBehavior`, `SlashCommand`, `RespondPermissionFn`. No React or renderer dependencies.
 - **`src/types/engine-hook.ts`** — `EngineHookState`, `BackgroundSessionSnapshot`. React-dependent engine types that live in the renderer layer.
 - **`src/types/agents.ts`** — `BackgroundAgent`, `BackgroundAgentActivity`, `BackgroundAgentUsage`. Renderer-only types for tracking background Task agents (status, activity log, live usage metrics, progress summary, current tool).
-- **`shared/types/acp.ts`** — ACP session update discriminated union types.
-- **`shared/types/registry.ts`** — agent registry types (`RegistryAgent`, `RegistryData`).
 - **`shared/types/git.ts`** — git operation types: `GitFileStatus`, `GitBranch`, `GitRepoInfo`, `GitStatus`, `GitLogEntry`, `GitWorktree`.
 - **`shared/types/jira.ts`** — Jira integration types: `JiraProjectConfig`, `JiraBoard`, `JiraIssue`, `JiraColumn`, `JiraSprint`.
 - **`shared/types/settings.ts`** — `AppSettings` type (notification config, editor/binary preferences, analytics settings, pre-release channel).
@@ -687,7 +674,6 @@ Types shared between electron and renderer live in `shared/types/`. Both tsconfi
 **Backward compatibility**: `src/types/` contains re-export shims (`export * from "../../shared/types/..."`) so existing `@/types/*` imports continue to work. New code can use either `@/types/` or `@shared/types/`.
 
 **Key type naming**:
-- `InstalledAgent` (was `AgentDefinition` — renamed to avoid SDK clash)
 - `AppPermissionBehavior` (was `PermissionBehavior` — renamed to avoid SDK clash)
 - `SessionBase` — shared base for `ChatSession` and `PersistedSession`
 - `BackgroundSessionSnapshot` — `{ isProcessing, isConnected, isCompacting, sessionInfo, totalCost, contextUsage }` snapshot for background store
@@ -751,7 +737,6 @@ Types shared between electron and renderer live in `shared/types/`. Both tsconfi
 - **`electron/src/lib/migration.ts`** — data migration utilities for localStorage and file store upgrades
 - **`electron/src/lib/claude-binary.ts`** / **`codex-binary.ts`** — CLI binary detection (managed download path + custom user path)
 - **`electron/src/lib/mcp-oauth-flow.ts`** / **`mcp-oauth-provider.ts`** — MCP OAuth provider server (loopback redirect) + flow orchestration
-- **`electron/src/lib/agent-registry.ts`** — reads/writes `InstalledAgent` definitions from disk; exposes `BUILTIN_CLAUDE` constant; used by `ipc/agent-registry.ts`
 
 ### Error Tracking (PostHog)
 

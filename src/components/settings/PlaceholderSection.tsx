@@ -17,7 +17,7 @@ export function PlaceholderSection({ title, description, icon: Icon, comingSoon 
         </div>
         {comingSoon && (
           <span className="mt-1 inline-flex rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground">
-            Coming Soon
+            即将推出
           </span>
         )}
         <h2 className="text-xl font-semibold text-foreground">{title}</h2>

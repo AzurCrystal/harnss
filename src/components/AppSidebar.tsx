@@ -18,7 +18,6 @@ import { UpdateBanner } from "./UpdateBanner";
 import { PreReleaseBanner } from "./PreReleaseBanner";
 import { ProjectSection } from "./sidebar/ProjectSection";
 import { SidebarActionsProvider } from "./sidebar/SidebarActionsContext";
-import { useAgentContext } from "./AgentContext";
 import { clearSidebarDragPayload, isSidebarDragKind } from "@/lib/sidebar/dnd";
 
 type ProjectDropPlacement = "before" | "after";
@@ -202,7 +201,6 @@ export const AppSidebar = memo(function AppSidebar({
     onOpenInSplitView,
     canOpenSessionInSplitView,
   } = sessionActions;
-  const { agents } = useAgentContext();
   const isCreating = draftSpaceId !== null;
   // The draft is a real space — find it in the spaces array
   const draftSpace = isCreating ? spaces.find((s) => s.id === draftSpaceId) ?? null : null;
@@ -510,7 +508,7 @@ export const AppSidebar = memo(function AppSidebar({
             className="no-drag flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-sidebar-foreground/70 transition-all hover:bg-black/5 hover:text-sidebar-foreground dark:hover:bg-white/10"
           >
             <Plus className="h-3.5 w-3.5 shrink-0" />
-            <span>Add project</span>
+            <span>添加项目</span>
           </button>
         )}
       </div>
@@ -524,10 +522,10 @@ export const AppSidebar = memo(function AppSidebar({
             </div>
 
             <h2 className="mt-4 text-base font-semibold text-sidebar-foreground">
-              Create a Space
+              创建空间
             </h2>
             <p className="mt-1 text-center text-xs text-sidebar-foreground/50 leading-relaxed">
-              Separate your projects for work, life, and more.
+              将工作、生活等不同场景的项目分开管理。
             </p>
 
             {/* Name input */}
@@ -543,7 +541,7 @@ export const AppSidebar = memo(function AppSidebar({
                     if (e.key === "Enter" && draftSpace.name.trim()) onConfirmCreateSpace();
                     if (e.key === "Escape") onCancelCreateSpace();
                   }}
-                  placeholder="Space name..."
+                  placeholder="空间名称…"
                   className="h-9 ps-8 text-sm bg-sidebar-accent/40 border-sidebar-border"
                   autoFocus
                 />
@@ -555,7 +553,7 @@ export const AppSidebar = memo(function AppSidebar({
               <PopoverTrigger asChild>
                 <button className="mt-3 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-start text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/60">
                   <Paintbrush className="h-4 w-4 text-sidebar-foreground/40" />
-                  Choose a Theme
+                  选择主题
                 </button>
               </PopoverTrigger>
               <PopoverContent
@@ -584,13 +582,13 @@ export const AppSidebar = memo(function AppSidebar({
               onClick={onConfirmCreateSpace}
               disabled={!draftSpace.name.trim()}
             >
-              Create Space
+              创建空间
             </Button>
             <button
               onClick={onCancelCreateSpace}
               className="w-full py-1.5 text-center text-sm text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
             >
-              Cancel
+              取消
             </button>
           </div>
         </div>
@@ -654,7 +652,6 @@ export const AppSidebar = memo(function AppSidebar({
                           : null
                       }
                       isDraggingProject={draggedProjectId === project.id}
-                      agents={agents}
                     />
                   );
                 })}
@@ -662,8 +659,8 @@ export const AppSidebar = memo(function AppSidebar({
                 {filteredProjects.length === 0 && (
                   <p className="px-2 py-8 text-center text-xs text-sidebar-foreground/50">
                     {projects.length === 0
-                      ? "Add a project to get started"
-                      : "No projects in this space"}
+                      ? "添加一个项目开始使用"
+                      : "此空间内没有项目"}
                   </p>
                 )}
               </div>
@@ -674,7 +671,7 @@ export const AppSidebar = memo(function AppSidebar({
           <PreReleaseBanner onOpenSettings={onOpenSettings} />
 
           <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] text-sidebar-foreground/40">
-            <span>Harnss is in early beta</span>
+            <span>Harnss 仍处于早期测试阶段</span>
             <span className="text-sidebar-foreground/20">·</span>
             <a
               href="https://github.com/OpenSource03/harnss/issues"
@@ -683,7 +680,7 @@ export const AppSidebar = memo(function AppSidebar({
               className="inline-flex items-center gap-1 text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground/80"
             >
               <Bug className="h-3 w-3" />
-              <span>Report a bug</span>
+              <span>报告问题</span>
             </a>
           </div>
         </div>

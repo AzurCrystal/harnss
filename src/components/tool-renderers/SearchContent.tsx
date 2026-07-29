@@ -68,7 +68,7 @@ function ContentResult({ content, numLines }: { content: string; numLines?: numb
       })}
       {numLines != null && numLines > 0 && (
         <div className="mt-1 text-[10px] text-foreground/25">
-          {numLines} line{numLines !== 1 ? "s" : ""}
+          {numLines} 行
         </div>
       )}
     </pre>
@@ -89,8 +89,8 @@ export function SearchContent({ message }: { message: UIMessage }) {
       {pattern && (
         <div className="font-mono text-[11px] text-foreground/50">
           {pattern}
-          {glob && <span className="text-foreground/30 ms-1.5">in {glob}</span>}
-          {!glob && path && <span className="text-foreground/30 ms-1.5">in {shortenPath(path)}</span>}
+          {glob && <span className="text-foreground/30 ms-1.5">范围 {glob}</span>}
+          {!glob && path && <span className="text-foreground/30 ms-1.5">范围 {shortenPath(path)}</span>}
         </div>
       )}
     </>
@@ -109,21 +109,21 @@ export function SearchContent({ message }: { message: UIMessage }) {
         {/* Summary badge */}
         {mode === "files_with_matches" && numFiles > 0 && (
           <span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">
-            {numFiles} file{numFiles !== 1 ? "s" : ""}
+            {numFiles} 个文件
           </span>
         )}
         {mode === "content" && numLines != null && numLines > 0 && numFiles > 0 && (
           <span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">
-            {numLines} line{numLines !== 1 ? "s" : ""} in {numFiles} file{numFiles !== 1 ? "s" : ""}
+            {numFiles} 个文件中的 {numLines} 行
           </span>
         )}
         {mode === "content" && numLines != null && numLines > 0 && numFiles === 0 && (
           <span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">
-            {numLines} line{numLines !== 1 ? "s" : ""}
+            {numLines} 行
           </span>
         )}
         {(mode === "files_with_matches" || mode === "content" || mode === "count") && numFiles === 0 && !content && (
-          <span className="text-[10px] text-foreground/30 italic">No matches</span>
+          <span className="text-[10px] text-foreground/30 italic">无匹配</span>
         )}
 
         {/* File list for files_with_matches mode */}

@@ -7,7 +7,7 @@
  */
 
 import { useMemo } from "react";
-import type { ToolIslandContextProps, GrabbedElement, McpServerStatus, McpServerConfig } from "@/types";
+import type { ToolIslandContextProps, GrabbedElement } from "@/types";
 import type { TerminalTab } from "@/lib/terminal-tabs";
 import type { ResolvedTheme } from "@/hooks/useTheme";
 
@@ -26,11 +26,6 @@ interface UseToolIslandContextInput {
   onPreviewFile: (path: string, rect: DOMRect) => void;
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
-  mcpServerStatuses: McpServerStatus[];
-  mcpStatusPreliminary: boolean;
-  onRefreshMcpStatus: () => void;
-  onReconnectMcpServer: (name: string) => Promise<void> | void;
-  onRestartWithMcpServers: (servers: McpServerConfig[]) => Promise<void> | void;
 }
 
 export function useToolIslandContext(input: UseToolIslandContextInput): ToolIslandContextProps {
@@ -50,11 +45,6 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       onPreviewFile: input.onPreviewFile,
       collapsedRepos: input.collapsedRepos,
       onToggleRepoCollapsed: input.onToggleRepoCollapsed,
-      mcpServerStatuses: input.mcpServerStatuses,
-      mcpStatusPreliminary: input.mcpStatusPreliminary,
-      onRefreshMcpStatus: input.onRefreshMcpStatus,
-      onReconnectMcpServer: input.onReconnectMcpServer,
-      onRestartWithMcpServers: input.onRestartWithMcpServers,
     }),
     [
       input.spaceId,
@@ -71,11 +61,6 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       input.onPreviewFile,
       input.collapsedRepos,
       input.onToggleRepoCollapsed,
-      input.mcpServerStatuses,
-      input.mcpStatusPreliminary,
-      input.onRefreshMcpStatus,
-      input.onReconnectMcpServer,
-      input.onRestartWithMcpServers,
     ],
   );
 }

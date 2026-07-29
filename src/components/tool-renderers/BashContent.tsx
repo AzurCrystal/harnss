@@ -20,7 +20,7 @@ export function BashContent({ message }: { message: UIMessage }) {
   const [expanded, setExpanded] = useChatPersistedState(`bash:${message.id}`, false);
 
   const formattedResult = useMemo(() => (result ? formatBashResult(result) : ""), [result]);
-  const hasOutput = !!formattedResult && formattedResult !== "(no output)";
+  const hasOutput = !!formattedResult && formattedResult !== "（无输出）";
 
   const { displayText, totalLines, isTruncated } = useMemo(() => {
     if (!formattedResult) return { displayText: "", totalLines: 0, isTruncated: false };
@@ -73,7 +73,7 @@ export function BashContent({ message }: { message: UIMessage }) {
           className="mt-1 flex items-center gap-1 text-[10px] font-medium text-foreground/35 hover:text-foreground/60 transition-colors"
         >
           <ChevronsUpDown className="h-3 w-3" />
-          Show full output ({totalLines} lines)
+          显示完整输出（共 {totalLines} 行）
         </button>
       )}
       {expanded && totalLines > MAX_OUTPUT_LINES && (
@@ -82,7 +82,7 @@ export function BashContent({ message }: { message: UIMessage }) {
           className="mt-1 flex items-center gap-1 text-[10px] font-medium text-foreground/35 hover:text-foreground/60 transition-colors"
         >
           <ChevronsUpDown className="h-3 w-3" />
-          Collapse
+          收起
         </button>
       )}
     </div>

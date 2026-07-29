@@ -90,7 +90,7 @@ export function migrateFromOpenAcpUi(): void {
   }
 
   // Individual files to copy
-  const files = ["settings.json", "agents.json", "spaces.json", "projects.json"];
+  const files = ["settings.json", "spaces.json", "projects.json"];
   for (const file of files) {
     const src = path.join(oldDataDir, file);
     const dst = path.join(newDataDir, file);

@@ -95,12 +95,12 @@ export function useGlassOrchestrator({
       return;
     }
 
-    toast("Restart required", {
+    toast("需要重启", {
       id: MAC_BACKGROUND_EFFECT_RESTART_TOAST_ID,
       duration: Infinity,
-      description: "Restart Harnss to switch away from Liquid Glass cleanly.",
+      description: "重启 Harnss，以正常切换出 Liquid Glass。",
       action: {
-        label: "Restart",
+        label: "重启",
         onClick: () => {
           void window.claude.relaunchApp();
         },

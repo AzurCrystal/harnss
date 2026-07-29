@@ -1,50 +1,42 @@
 import { startTransition, useCallback, useEffect, useRef } from "react";
-import { toast } from "sonner";
 import type { PersistedSession, Project } from "../../types";
 import { toChatSession } from "../../lib/session/records";
 import { DRAFT_ID } from "./types";
-import type { SharedSessionRefs, SharedSessionSetters, EngineHooks } from "./types";
+import type { SharedSessionRefs, SharedSessionSetters } from "./types";
 
 const MAX_SESSION_PAYLOAD_CACHE = 6;
 
 interface UseSessionCacheParams {
   refs: SharedSessionRefs;
   setters: SharedSessionSetters;
-  engines: EngineHooks;
   projects: Project[];
   activeSessionId: string | null;
-  activeEngine: string;
-  getProjectCwd: (project: Project) => string;
-  prefetchCodexModels: (preferredModel?: string) => Promise<void>;
 }
 
 export function useSessionCache({
   refs,
   setters,
-  engines,
   projects,
   activeSessionId,
-  activeEngine,
-  getProjectCwd,
-  prefetchCodexModels,
 }: UseSessionCacheParams) {
-  const { codex } = engines;
   const {
     setSessions,
     setStartOptions,
     setInitialMessages,
     setInitialMeta,
     setInitialPermission,
-    setInitialRawAcpPermission,
+    setInitialSupportedModels,
+    setInitialOmpModels,
+    setInitialThinkingLevels,
+    setInitialThinkingLevel,
+    setInitialSlashCommands,
     setActiveSessionId,
     setDraftProjectId,
-    setCachedModels,
   } = setters;
   const {
     activeSessionIdRef,
     sessionsRef,
     backgroundStoreRef,
-    startOptionsRef,
   } = refs;
 
   const sessionPayloadCacheRef = useRef<Map<string, PersistedSession>>(new Map());
@@ -73,15 +65,16 @@ export function useSessionCache({
 
   /** Apply a loaded (or cached) session payload into React state. */
   const applyLoadedSession = useCallback((id: string, data: PersistedSession) => {
+    const sourceEngine = data.sourceEngine ?? data.engine;
+    const backgroundState = backgroundStoreRef.current.get(id);
     startTransition(() => {
       setStartOptions((prev) => ({
         ...prev,
-        engine: data.engine ?? "claude",
+        engine: "omp",
         model: data.model,
         effort: data.effort,
         permissionMode: data.permissionMode,
         planMode: !!data.planMode,
-        agentId: data.agentId,
       }));
       setInitialMessages(data.messages);
       setInitialMeta({
@@ -92,7 +85,11 @@ export function useSessionCache({
         contextUsage: data.contextUsage ?? null,
       });
       setInitialPermission(null);
-      setInitialRawAcpPermission(null);
+      setInitialSupportedModels(backgroundState?.supportedModels ?? []);
+      setInitialOmpModels(backgroundState?.ompModels ?? []);
+      setInitialThinkingLevels(backgroundState?.thinkingLevels ?? []);
+      setInitialThinkingLevel(backgroundState?.thinkingLevel);
+      setInitialSlashCommands(backgroundState?.slashCommands ?? []);
       setActiveSessionId(id);
       setDraftProjectId(null);
       setSessions((prev) =>
@@ -100,10 +97,8 @@ export function useSessionCache({
           ...s,
           isActive: s.id === id,
           ...(s.id === id ? {
-            ...(data.engine ? { engine: data.engine } : {}),
-            ...(data.agentId ? { agentId: data.agentId } : {}),
-            ...(data.agentSessionId ? { agentSessionId: data.agentSessionId } : {}),
-            ...(data.codexThreadId ? { codexThreadId: data.codexThreadId } : {}),
+            engine: "omp",
+            sourceEngine,
             ...(data.effort ? { effort: data.effort } : {}),
             ...(data.permissionMode ? { permissionMode: data.permissionMode } : {}),
             planMode: !!data.planMode,
@@ -118,8 +113,12 @@ export function useSessionCache({
     setDraftProjectId,
     setInitialMessages,
     setInitialMeta,
+    setInitialOmpModels,
     setInitialPermission,
-    setInitialRawAcpPermission,
+    setInitialSlashCommands,
+    setInitialSupportedModels,
+    setInitialThinkingLevel,
+    setInitialThinkingLevels,
     setSessions,
     setStartOptions,
   ]);
@@ -141,7 +140,10 @@ export function useSessionCache({
     Promise.all(
       projects.map((p) => window.claude.sessions.list(p.id)),
     ).then((results) => {
-      const all = results.flat().map((session) => toChatSession(session, false));
+      const all = results.flat().map((session) => ({
+        ...toChatSession(session, false),
+        engine: "omp" as const,
+      }));
       setSessions((prev) => {
         const existingById = new Map(prev.map((session) => [session.id, session]));
         return all.map((session) => {
@@ -160,59 +162,6 @@ export function useSessionCache({
     }).catch(() => { /* IPC failure — leave sessions empty */ });
   }, [projects]);
 
-  // Hydrate Claude model cache at app startup and refresh it in the background.
-  useEffect(() => {
-    let cancelled = false;
-
-    const firstProject = refs.projectsRef.current[0];
-    const preferredCwd = firstProject ? getProjectCwd(firstProject) : undefined;
-
-    window.claude.modelsCacheGet().then((result) => {
-      if (cancelled) return;
-      if (result.models?.length) {
-        setCachedModels(result.models);
-      }
-    }).catch(() => { /* cache read is optional */ });
-
-    // Defer revalidation (spawns a Claude SDK subprocess) to avoid competing with
-    // the startup IPC burst. The cached models from modelsCacheGet() above are
-    // sufficient for the initial render.
-    const revalidateTimer = setTimeout(() => {
-      window.claude.modelsCacheRevalidate(preferredCwd ? { cwd: preferredCwd } : undefined).then((result) => {
-        if (cancelled) return;
-        if (result.models?.length) {
-          setCachedModels(result.models);
-          return;
-        }
-        if (result.error) {
-          toast.error("Failed to load Claude models", { description: result.error });
-        }
-      }).catch(() => { /* keep stale cache if revalidation fails */ });
-    }, 3000);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(revalidateTimer);
-    };
-  }, [getProjectCwd]);
-
-  // Ensure Codex model metadata is available even before first turn.
-  useEffect(() => {
-    if (activeEngine !== "codex") return;
-    if (codex.codexModels.length > 0) return;
-    const preferredModel = activeSessionId === DRAFT_ID
-      ? startOptionsRef.current.model
-      : sessionsRef.current.find((s) => s.id === activeSessionId)?.model;
-    prefetchCodexModels(preferredModel);
-  }, [
-    activeEngine,
-    activeSessionId,
-    // Must re-run when sessions list changes (startOptions.model could resolve to session model)
-    projects,
-    startOptionsRef.current.model,
-    codex.codexModels.length,
-    prefetchCodexModels,
-  ]);
 
   // Idle-time prefetch of recent session payloads.
   useEffect(() => {

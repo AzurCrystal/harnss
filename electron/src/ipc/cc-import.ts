@@ -76,7 +76,7 @@ function extractSessionPreview(filePath: string): SessionPreview | null {
 
     return {
       firstUserMessage,
-      model: model || "unknown",
+      model: model || "未知",
       timestamp: timestamp || new Date(0).toISOString(),
     };
   } catch {
@@ -254,7 +254,7 @@ export function register(): void {
       const filePath = path.join(projectDir, `${ccSessionId}.jsonl`);
 
       if (!fs.existsSync(filePath)) {
-        return { error: "Session file not found" };
+        return { error: "会话文件未找到" };
       }
 
       const messages = parseJsonlToUIMessages(filePath);

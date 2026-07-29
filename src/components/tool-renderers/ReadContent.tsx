@@ -15,8 +15,8 @@ export function ReadContent({ message }: { message: UIMessage }) {
         {filePath}
         <span className="text-foreground/30">
           {isFull
-            ? `${totalLines} lines`
-            : `L${startLine}–${endLine} of ${totalLines}`}
+            ? `${totalLines} 行`
+            : `第 ${startLine}–${endLine} 行，共 ${totalLines} 行`}
         </span>
         <OpenInEditorButton filePath={filePath} line={startLine} className="group-hover/read:text-foreground/25" />
       </div>
@@ -29,7 +29,7 @@ export function ReadContent({ message }: { message: UIMessage }) {
     return (
       <div className="group/read flex items-center gap-1.5 text-xs text-foreground/50 font-mono text-[11px]">
         {filePath}
-        <span className="text-foreground/30">{lineCount} lines</span>
+        <span className="text-foreground/30">{lineCount} 行</span>
         <OpenInEditorButton filePath={filePath} className="group-hover/read:text-foreground/25" />
       </div>
     );
@@ -44,7 +44,7 @@ export function ReadContent({ message }: { message: UIMessage }) {
       <div className="group/read flex items-center gap-1.5 text-xs text-foreground/50 font-mono text-[11px]">
         {filePath}
         {startLine > 0 && endLine > 0 && (
-          <span className="text-foreground/30">L{startLine}–{endLine}</span>
+          <span className="text-foreground/30">第 {startLine}–{endLine} 行</span>
         )}
         <OpenInEditorButton filePath={filePath} line={startLine || undefined} className="group-hover/read:text-foreground/25" />
       </div>

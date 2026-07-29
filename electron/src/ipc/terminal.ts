@@ -87,7 +87,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
         log("TERMINAL", `Terminal ${terminalId.slice(0, 8)} exited with code ${exitCode}`);
         entry.exited = true;
         entry.exitCode = exitCode;
-        const exitNotice = "\r\n\x1b[2m[process exited]\x1b[0m\r\n";
+        const exitNotice = "\r\n\x1b[2m[进程已退出]\x1b[0m\r\n";
         entry.history = appendTerminalHistory(entry.history, exitNotice);
         entry.seq += 1;
         safeSend(getMainWindow, "terminal:data", {
@@ -108,15 +108,15 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle("terminal:write", (_event, { terminalId, data }: { terminalId: string; data: string }) => {
     const term = terminals.get(terminalId);
-    if (!term) return { error: "Terminal not found" };
-    if (term.exited) return { error: "Terminal has exited" };
+    if (!term) return { error: "终端未找到" };
+    if (term.exited) return { error: "终端已退出" };
     term.pty.write(data);
     return { ok: true };
   });
 
   ipcMain.handle("terminal:resize", (_event, { terminalId, cols, rows }: { terminalId: string; cols: number; rows: number }) => {
     const term = terminals.get(terminalId);
-    if (!term) return { error: "Terminal not found" };
+    if (!term) return { error: "终端未找到" };
     if (term.cols === cols && term.rows === rows) {
       return { ok: true };
     }
@@ -137,7 +137,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle("terminal:snapshot", (_event, terminalId: string) => {
     const term = terminals.get(terminalId);
-    if (!term) return { error: "Terminal not found" };
+    if (!term) return { error: "终端未找到" };
     return {
       output: readTerminalHistory(term.history),
       seq: term.seq,

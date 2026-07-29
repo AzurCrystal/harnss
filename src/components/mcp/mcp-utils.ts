@@ -30,11 +30,11 @@ export const STATUS_CONFIG: Record<
   McpServerStatusState,
   { icon: typeof CircleCheck; color: string; label: string }
 > = {
-  connected: { icon: CircleCheck, color: "text-emerald-500", label: "Connected" },
-  pending: { icon: CircleDashed, color: "text-muted-foreground animate-spin", label: "Connecting..." },
-  "needs-auth": { icon: Lock, color: "text-amber-500", label: "Needs authentication" },
-  failed: { icon: CircleX, color: "text-destructive", label: "Connection failed" },
-  disabled: { icon: CircleAlert, color: "text-muted-foreground/50", label: "Disabled" },
+  connected: { icon: CircleCheck, color: "text-emerald-500", label: "已连接" },
+  pending: { icon: CircleDashed, color: "text-muted-foreground animate-spin", label: "连接中…" },
+  "needs-auth": { icon: Lock, color: "text-amber-500", label: "需要认证" },
+  failed: { icon: CircleX, color: "text-destructive", label: "连接失败" },
+  disabled: { icon: CircleAlert, color: "text-muted-foreground/50", label: "已禁用" },
 };
 
 // ── Auth status ──

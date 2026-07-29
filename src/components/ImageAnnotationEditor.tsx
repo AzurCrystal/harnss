@@ -439,9 +439,9 @@ export const ImageAnnotationEditor = React.memo(function ImageAnnotationEditor({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {/* Visually-hidden title for a11y */}
-        <DialogTitle className="sr-only">Annotate Image</DialogTitle>
+        <DialogTitle className="sr-only">标注图片</DialogTitle>
         <DialogDescription className="sr-only">
-          Draw, highlight, and annotate the image before sending.
+          发送前可在图片上绘制、高亮和添加标注。
         </DialogDescription>
 
         {/* Toolbar */}
@@ -503,7 +503,7 @@ export const ImageAnnotationEditor = React.memo(function ImageAnnotationEditor({
               type="text"
               className="fixed z-[60] rounded border border-border bg-background px-2 py-1 text-sm text-foreground shadow-md outline-none"
               style={{ left: textEditing.x, top: textEditing.y }}
-              placeholder="Type here..."
+              placeholder="在此输入…"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   handleTextSubmit(e.currentTarget.value);
@@ -519,17 +519,17 @@ export const ImageAnnotationEditor = React.memo(function ImageAnnotationEditor({
 
           {/* Loading state */}
           {!loadedImage && open && (
-            <div className="text-sm text-muted-foreground">Loading image…</div>
+            <div className="text-sm text-muted-foreground">正在加载图片…</div>
           )}
         </div>
 
         {/* Footer */}
         <DialogFooter className="border-t px-4 py-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            取消
           </Button>
           <Button onClick={handleSave} disabled={!loadedImage}>
-            Done
+            完成
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -14,16 +14,17 @@ export interface SessionMeta {
   permissionMode?: string;
   planMode?: boolean;
   totalCost?: number;
-  engine?: "claude" | "acp" | "codex";
-  codexThreadId?: string;
+  engine?: "omp";
+  /** Original persisted backend before the runtime is normalized to OMP. */
+  sourceEngine?: string;
+  /** OMP session identity used to resume the agent session. */
+  agentSessionId?: string;
   /** Which folder this chat belongs to (undefined = root level). */
   folderId?: string;
   /** Whether this chat is pinned to the top of the sidebar. */
   pinned?: boolean;
   /** Git branch at session creation time. */
   branch?: string;
-  /** Agent ID — which agent was used for this session. */
-  agentId?: string;
 }
 
 /**
@@ -47,7 +48,7 @@ export function extractSessionMeta(data: Record<string, unknown>, lastMessageAt:
   return {
     id: data.id as string,
     projectId: data.projectId as string,
-    title: (data.title as string) || "Untitled",
+    title: (data.title as string) || "未命名对话",
     createdAt: (data.createdAt as number) || 0,
     lastMessageAt,
     model: data.model as string | undefined,
@@ -55,11 +56,13 @@ export function extractSessionMeta(data: Record<string, unknown>, lastMessageAt:
     permissionMode: data.permissionMode as string | undefined,
     planMode: data.planMode as boolean | undefined,
     totalCost: (data.totalCost as number) || 0,
-    engine: data.engine as SessionMeta["engine"],
-    codexThreadId: data.codexThreadId as string | undefined,
+    engine: "omp",
+    sourceEngine: typeof data.sourceEngine === "string"
+      ? data.sourceEngine
+      : typeof data.engine === "string" ? data.engine : undefined,
+    agentSessionId: data.agentSessionId as string | undefined,
     folderId: data.folderId as string | undefined,
     pinned: data.pinned as boolean | undefined,
     branch: data.branch as string | undefined,
-    agentId: data.agentId as string | undefined,
   };
 }

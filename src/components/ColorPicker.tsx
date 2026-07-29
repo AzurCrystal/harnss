@@ -54,7 +54,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
 
       {/* Hue slider */}
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Hue</label>
+        <label className="text-xs text-muted-foreground">色相</label>
         <div
           className="h-3 rounded-full"
           style={{
@@ -73,7 +73,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
 
       {/* Chroma slider */}
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Intensity</label>
+        <label className="text-xs text-muted-foreground">强度</label>
         <Slider
           min={0}
           max={0.3}
@@ -104,13 +104,13 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
             }`}
           />
         </button>
-        <span className="text-xs text-muted-foreground">Gradient</span>
+        <span className="text-xs text-muted-foreground">渐变</span>
       </div>
 
       {/* Gradient hue slider */}
       {useGradient && (
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Gradient Hue</label>
+          <label className="text-xs text-muted-foreground">渐变色相</label>
           <Slider
             min={0}
             max={360}
@@ -123,7 +123,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
 
       {/* Preview */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Preview</span>
+        <span className="text-xs text-muted-foreground">预览</span>
         <div
           className="h-6 w-12 rounded-md"
           style={{

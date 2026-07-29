@@ -16,7 +16,7 @@ interface Space {
 
 const DEFAULT_SPACE: Space = {
   id: "default",
-  name: "General",
+  name: "通用",
   icon: "⭐",
   iconType: "emoji",
   color: { hue: 0, chroma: 0 },
@@ -32,7 +32,13 @@ function readSpaces(): Space[] | null {
   const filePath = getSpacesFilePath();
   if (!fs.existsSync(filePath)) return null;
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    const spaces = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Space[];
+    const defaultSpace = spaces.find((space) => space.id === DEFAULT_SPACE.id);
+    if (defaultSpace?.name === "General") {
+      defaultSpace.name = DEFAULT_SPACE.name;
+      writeSpaces(spaces);
+    }
+    return spaces;
   } catch {
     return null;
   }

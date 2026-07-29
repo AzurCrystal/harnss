@@ -33,9 +33,9 @@ export const SummaryBlock = memo(function SummaryBlock({ message }: SummaryBlock
   const hasContent = !!message.content.trim();
 
   const typeLabel = message.compactTrigger === "manual"
-    ? "Manual compact"
+    ? "手动压缩"
     : message.compactTrigger === "auto"
-      ? "Auto-compact"
+      ? "自动压缩"
       : null;
 
   const preview = useMemo(() => {
@@ -46,7 +46,7 @@ export const SummaryBlock = memo(function SummaryBlock({ message }: SummaryBlock
 
   const Icon = isCompact ? Minimize2 : BookOpen;
 
-  const fallbackLabel = isCompact ? "Context compacted" : "Context resumed from previous conversation";
+  const fallbackLabel = isCompact ? "上下文已压缩" : "已恢复之前对话的上下文";
 
   return (
     <div className={`flow-root ${CHAT_CARD_ROW_MARGIN_CLASS}`}>
@@ -68,7 +68,7 @@ export const SummaryBlock = memo(function SummaryBlock({ message }: SummaryBlock
         </span>
         {message.compactPreTokens != null && (
           <span className="shrink-0 text-xs text-muted-foreground/50">
-            {(message.compactPreTokens / 1000).toFixed(0)}k tokens
+            {(message.compactPreTokens / 1000).toFixed(0)}k 个令牌
           </span>
         )}
         {hasContent && (

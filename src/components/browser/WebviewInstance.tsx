@@ -77,7 +77,7 @@ export function WebviewInstance({
     if (!wv) return;
     const result = await window.claude.setBrowserColorScheme(wv.getWebContentsId(), tab.colorScheme);
     if (!result.ok) {
-      throw new Error(result.error ?? "Failed to apply browser color scheme");
+      throw new Error(result.error ?? "应用浏览器配色方案失败");
     }
   }, [isDomReady, tab.colorScheme]);
 

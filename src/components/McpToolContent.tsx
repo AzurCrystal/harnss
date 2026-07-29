@@ -153,13 +153,13 @@ export function getMcpCompactSummary(toolName: string, toolInput: Record<string,
     return String(toolInput.issueIdOrKey ?? "");
   }
   if (/getVisibleJiraProjects/.test(toolName)) {
-    return toolInput.searchString ? `"${toolInput.searchString}"` : "all projects";
+    return toolInput.searchString ? `"${toolInput.searchString}"` : "全部项目";
   }
   if (/searchConfluenceUsingCql/.test(toolName)) {
     return String(toolInput.cql ?? "").slice(0, 80);
   }
   if (/getConfluencePageDescendants/.test(toolName)) {
-    return `page ${toolInput.pageId ?? ""}`;
+    return `页面 ${toolInput.pageId ?? ""}`;
   }
   if (/createConfluencePage/.test(toolName)) {
     return String(toolInput.title ?? "").slice(0, 80);
@@ -167,10 +167,10 @@ export function getMcpCompactSummary(toolName: string, toolInput: Record<string,
   if (/updateConfluencePage/.test(toolName)) {
     return toolInput.versionMessage
       ? String(toolInput.versionMessage).slice(0, 80)
-      : `page ${toolInput.pageId ?? ""}`;
+      : `页面 ${toolInput.pageId ?? ""}`;
   }
   if (/getPagesInConfluenceSpace/.test(toolName)) {
-    return toolInput.title ? `"${toolInput.title}"` : `space ${toolInput.spaceId ?? ""}`;
+    return toolInput.title ? `"${toolInput.title}"` : `空间 ${toolInput.spaceId ?? ""}`;
   }
   if (/Atlassian[/_]+search$/.test(toolName)) {
     return String(toolInput.query ?? "").slice(0, 80);

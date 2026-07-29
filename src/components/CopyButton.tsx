@@ -23,6 +23,8 @@ export function CopyButton({ text, className }: CopyButtonProps) {
     <Button
       type="button"
       variant="ghost"
+      aria-label={copied ? "已复制" : "复制"}
+      title={copied ? "已复制" : "复制"}
       size="icon"
       className={`h-7 w-7 text-muted-foreground hover:text-foreground ${className ?? ""}`}
       onClick={(event) => {

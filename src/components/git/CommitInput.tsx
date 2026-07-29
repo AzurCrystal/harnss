@@ -5,14 +5,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { EngineId } from "@/types";
 
 export interface CommitInputProps {
   cwd: string;
   stagedCount: number;
   totalChanges: number;
-  activeEngine?: EngineId;
-  activeSessionId?: string | null;
   onSyncError: (error: string) => void;
   onCommit: (message: string) => Promise<void>;
 }
@@ -21,8 +18,6 @@ export function CommitInput({
   cwd,
   stagedCount,
   totalChanges,
-  activeEngine,
-  activeSessionId,
   onSyncError,
   onCommit,
 }: CommitInputProps) {
@@ -48,22 +43,18 @@ export function CommitInput({
   const handleGenerateMessage = useCallback(async () => {
     setGeneratingMessage(true);
     try {
-      const result = await window.claude.git.generateCommitMessage(
-        cwd,
-        activeEngine,
-        activeEngine !== "claude" && activeSessionId ? activeSessionId : undefined,
-      );
+      const result = await window.claude.git.generateCommitMessage(cwd);
       if (result.message) {
         setCommitMessage(result.message);
       } else if (result.error) {
         onSyncError(result.error);
       } else {
-        onSyncError("No result received");
+        onSyncError("未收到结果");
       }
     } finally {
       setGeneratingMessage(false);
     }
-  }, [cwd, activeEngine, activeSessionId, onSyncError]);
+  }, [cwd, onSyncError]);
 
   const canCommit = commitMessage.trim().length > 0 && stagedCount > 0;
 
@@ -74,7 +65,7 @@ export function CommitInput({
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
           onKeyDown={handleCommitKeyDown}
-          placeholder="Commit message…"
+          placeholder="提交信息…"
           rows={2}
           className="w-full resize-none bg-transparent px-2.5 pt-1.5 pb-1 text-[11px] leading-relaxed text-foreground/80 outline-none placeholder:text-foreground/30"
         />
@@ -96,13 +87,13 @@ export function CommitInput({
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4}>
-              <p className="text-xs">AI commit message</p>
+              <p className="text-xs">AI 提交信息</p>
             </TooltipContent>
           </Tooltip>
           <div className="min-w-0 flex-1" />
           {stagedCount > 0 && (
             <span className="text-[10px] tabular-nums text-foreground/35">
-              {stagedCount} staged
+              已暂存 {stagedCount} 项
             </span>
           )}
           <Tooltip>
@@ -118,12 +109,12 @@ export function CommitInput({
                 }`}
               >
                 <Check className="h-3 w-3" />
-                <span>Commit</span>
+                <span>提交</span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4}>
               <p className="text-xs">
-                Commit changes
+                提交更改
                 <span className="ms-1.5 text-background/50">⌘↵</span>
               </p>
             </TooltipContent>

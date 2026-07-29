@@ -27,7 +27,6 @@ import { getAppSettings } from "./lib/app-settings";
 import { initAutoUpdater, getIsInstallingUpdate } from "./lib/updater";
 import { initPreReleaseCheck } from "./lib/prerelease-check";
 import { initPostHog, shutdownPostHog, reinitPostHog, captureEvent } from "./lib/posthog";
-import { getAcpAnalyticsPropertiesForSession } from "./ipc/acp-sessions";
 import { terminals } from "./ipc/terminal";
 
 // IPC module registrations
@@ -37,19 +36,17 @@ import * as sessionsIpc from "./ipc/sessions";
 import * as foldersIpc from "./ipc/folders";
 import * as ccImportIpc from "./ipc/cc-import";
 import * as filesIpc from "./ipc/files";
-import * as claudeSessionsIpc from "./ipc/claude-sessions";
+import * as ompSessionsIpc from "./ipc/omp-sessions";
 import * as titleGenIpc from "./ipc/title-gen";
 import * as terminalIpc from "./ipc/terminal";
 import * as gitIpc from "./ipc/git";
-import * as agentRegistryIpc from "./ipc/agent-registry";
-import * as acpSessionsIpc from "./ipc/acp-sessions";
-import * as codexSessionsIpc from "./ipc/codex-sessions";
 import * as mcpIpc from "./ipc/mcp";
 import * as settingsIpc from "./ipc/settings";
 import * as jiraIpc from "./ipc/jira";
 import { onSettingsChanged } from "./ipc/settings";
 
 // --- Performance: Chromium/V8 flags (must be set before app.whenReady()) ---
+app.commandLine.appendSwitch("lang", "zh-CN");
 app.commandLine.appendSwitch("enable-gpu-rasterization"); // force GPU raster for all content
 app.commandLine.appendSwitch("enable-zero-copy"); // avoid CPU→GPU memory copies for tiles
 app.commandLine.appendSwitch("ignore-gpu-blocklist"); // use GPU even on blocklisted hardware
@@ -187,6 +184,26 @@ function createWindow(): void {
     showSearchWithGoogle: false,
     showLookUpSelection: false,
     showInspectElement: false,
+    labels: {
+      learnSpelling: "学习拼写",
+      lookUpSelection: "查询“{selection}”",
+      searchWithGoogle: "使用 Google 搜索",
+      cut: "剪切",
+      copy: "复制",
+      paste: "粘贴",
+      selectAll: "全选",
+      saveImage: "保存图片",
+      saveImageAs: "图片另存为…",
+      saveVideo: "保存视频",
+      saveVideoAs: "视频另存为…",
+      copyLink: "复制链接",
+      saveLinkAs: "链接另存为…",
+      copyImage: "复制图片",
+      copyImageAddress: "复制图片地址",
+      copyVideoAddress: "复制视频地址",
+      inspect: "检查元素",
+      services: "服务",
+    },
   });
 
   const isDev = !app.isPackaged;
@@ -257,15 +274,15 @@ ipcMain.handle("browser:set-color-scheme", async (_event, payload: { targetWebCo
     const colorScheme = payload?.colorScheme;
 
     if (!Number.isInteger(targetId)) {
-      return { ok: false, error: "Invalid target webContents id" };
+      return { ok: false, error: "无效的目标 webContents ID" };
     }
     if (colorScheme !== "light" && colorScheme !== "dark") {
-      return { ok: false, error: "Invalid browser color scheme" };
+      return { ok: false, error: "无效的浏览器颜色方案" };
     }
 
     const target = webContents.fromId(targetId);
     if (!target || target.isDestroyed()) {
-      return { ok: false, error: "Browser target is unavailable" };
+      return { ok: false, error: "浏览器目标不可用" };
     }
 
     if (!target.debugger.isAttached()) {
@@ -328,13 +345,10 @@ sessionsIpc.register();
 foldersIpc.register();
 ccImportIpc.register();
 filesIpc.register(getMainWindow);
-claudeSessionsIpc.register(getMainWindow);
+ompSessionsIpc.register(getMainWindow);
 titleGenIpc.register();
 terminalIpc.register(getMainWindow);
 gitIpc.register();
-agentRegistryIpc.register();
-acpSessionsIpc.register(getMainWindow);
-codexSessionsIpc.register(getMainWindow);
 mcpIpc.register();
 settingsIpc.register(getMainWindow);
 jiraIpc.register();
@@ -355,13 +369,7 @@ onSettingsChanged((settings) => {
 // --- Renderer→main analytics bridge ---
 ipcMain.on("analytics:capture", (_event, eventName: string, properties?: Record<string, unknown>) => {
   const nextProperties: Record<string, unknown> = properties ? { ...properties } : {};
-  const sessionId = typeof nextProperties.session_id === "string" ? nextProperties.session_id : null;
   delete nextProperties.session_id;
-
-  if (nextProperties.engine === "acp" && sessionId) {
-    Object.assign(nextProperties, getAcpAnalyticsPropertiesForSession(sessionId) ?? {});
-  }
-
   captureEvent(eventName, nextProperties).catch(() => { /* non-fatal */ });
 });
 
@@ -503,6 +511,7 @@ app.whenReady().then(() => {
 });
 
 app.on("will-quit", (event) => {
+  ompSessionsIpc.stopAll();
   globalShortcut.unregisterAll();
 
   // When an update is being installed, let the updater control the quit lifecycle.
@@ -526,9 +535,7 @@ app.on("will-quit", (event) => {
 });
 
 app.on("window-all-closed", () => {
-  claudeSessionsIpc.stopAll();
-  acpSessionsIpc.stopAll();
-  codexSessionsIpc.stopAll();
+  ompSessionsIpc.stopAll();
 
   for (const [terminalId, term] of terminals) {
     log("CLEANUP", `Killing terminal ${terminalId.slice(0, 8)}`);

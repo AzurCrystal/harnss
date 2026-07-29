@@ -36,12 +36,12 @@ export function JiraAuthDialog({
     e.preventDefault();
 
     if (!email.trim()) {
-      setError("Email is required");
+      setError("请输入邮箱");
       return;
     }
 
     if (!apiToken.trim()) {
-      setError("API token is required");
+      setError("请输入 API 令牌");
       return;
     }
 
@@ -85,10 +85,9 @@ export function JiraAuthDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Authenticate with Jira</DialogTitle>
+          <DialogTitle>Jira 认证</DialogTitle>
           <DialogDescription>
-            Enter your Jira API token to connect. You can create an API token
-            from your Atlassian account settings.
+            输入你的 Jira API 令牌以连接。可在 Atlassian 账户设置中创建 API 令牌。
           </DialogDescription>
         </DialogHeader>
 
@@ -96,7 +95,7 @@ export function JiraAuthDialog({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="instanceUrl" className="text-sm font-medium">
-                Instance URL
+                实例 URL
               </label>
               <Input
                 id="instanceUrl"
@@ -108,7 +107,7 @@ export function JiraAuthDialog({
 
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                邮箱
               </label>
               <Input
                 id="email"
@@ -120,24 +119,24 @@ export function JiraAuthDialog({
                 autoFocus
               />
               <p className="text-sm text-muted-foreground">
-                The email associated with your Atlassian account
+                与你的 Atlassian 账户关联的邮箱
               </p>
             </div>
 
             <div className="space-y-2">
               <label htmlFor="apiToken" className="text-sm font-medium">
-                API Token
+                API 令牌
               </label>
               <Input
                 id="apiToken"
                 type="password"
-                placeholder="Enter your Jira API token"
+                placeholder="输入你的 Jira API 令牌"
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
                 disabled={loading}
               />
               <p className="text-sm text-muted-foreground">
-                Create a token at{" "}
+                在{" "}
                 <a
                   href="https://id.atlassian.com/manage-profile/security/api-tokens"
                   target="_blank"
@@ -146,6 +145,7 @@ export function JiraAuthDialog({
                 >
                   id.atlassian.com
                 </a>
+                {" "}创建令牌
               </p>
             </div>
 
@@ -163,10 +163,10 @@ export function JiraAuthDialog({
               onClick={handleClose}
               disabled={loading}
             >
-              Cancel
+              取消
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Authenticating..." : "Connect"}
+              {loading ? "认证中…" : "连接"}
             </Button>
           </DialogFooter>
         </form>

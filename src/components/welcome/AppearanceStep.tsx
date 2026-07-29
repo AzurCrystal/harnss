@@ -12,9 +12,9 @@ const THEME_OPTIONS: {
   label: string;
   icon: typeof Sun;
 }[] = [
-  { id: "dark", label: "Dark", icon: Moon },
-  { id: "light", label: "Light", icon: Sun },
-  { id: "system", label: "System", icon: Monitor },
+  { id: "dark", label: "深色", icon: Moon },
+  { id: "light", label: "浅色", icon: Sun },
+  { id: "system", label: "跟随系统", icon: Monitor },
 ];
 
 // ── Mini UI mockup for theme cards ──
@@ -168,10 +168,10 @@ export function AppearanceStep({
               color: "oklch(0.60 0.20 250)",
             }}
           >
-            Make it yours
+            由你定义
           </h2>
           <p className="mt-3 text-lg text-muted-foreground">
-            Pick your vibe. Everything updates live.
+            挑选你喜欢的风格，所有更改即时生效。
           </p>
         </motion.div>
 
@@ -183,7 +183,7 @@ export function AppearanceStep({
           transition={{ duration: 0.4, delay: 0.08 }}
         >
           <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-            Theme
+            主题
           </div>
           <div className="grid grid-cols-3 gap-3">
             {THEME_OPTIONS.map((opt) => {
@@ -218,7 +218,7 @@ export function AppearanceStep({
           transition={{ duration: 0.4, delay: 0.16 }}
         >
           <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-            Layout
+            布局
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -231,8 +231,8 @@ export function AppearanceStep({
             >
               <IslandsMockup />
               <div className="text-center">
-                <div className="text-sm font-medium text-foreground">Islands</div>
-                <div className="text-xs text-muted-foreground">Rounded, separated</div>
+                <div className="text-sm font-medium text-foreground">岛屿</div>
+                <div className="text-xs text-muted-foreground">圆角、分离</div>
               </div>
             </button>
             <button
@@ -245,8 +245,8 @@ export function AppearanceStep({
             >
               <FlatMockup />
               <div className="text-center">
-                <div className="text-sm font-medium text-foreground">Flat</div>
-                <div className="text-xs text-muted-foreground">Edge-to-edge</div>
+                <div className="text-sm font-medium text-foreground">平铺</div>
+                <div className="text-xs text-muted-foreground">边到边</div>
               </div>
             </button>
           </div>
@@ -260,17 +260,17 @@ export function AppearanceStep({
           transition={{ duration: 0.4, delay: 0.24 }}
         >
           <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-            Tool behavior
+            工具行为
           </div>
           <div className="flex items-center justify-between rounded-xl bg-foreground/[0.03] px-5 py-4">
             <div className="flex items-center gap-3">
               <Layers className="h-4.5 w-4.5 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium text-foreground">
-                  Auto-group tools
+                  自动分组工具调用
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Collapse consecutive tool calls into a single group.
+                  将连续的工具调用折叠为一个分组。
                 </div>
               </div>
             </div>
@@ -284,10 +284,10 @@ export function AppearanceStep({
               <ChevronsUpDown className="h-4.5 w-4.5 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium text-foreground">
-                  Auto-expand tool results
+                  自动展开工具结果
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Briefly open completed tool calls, then collapse them again.
+                  短暂展开已完成的工具调用，随后自动折叠。
                 </div>
               </div>
             </div>
@@ -301,10 +301,10 @@ export function AppearanceStep({
               <ChevronsUpDown className="h-4.5 w-4.5 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium text-foreground">
-                  Expand Edit and Write tools by default
+                  默认展开 Edit 和 Write 工具
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Start file edit tool calls open instead of collapsed.
+                  文件编辑类工具调用默认展开而非折叠。
                 </div>
               </div>
             </div>
@@ -326,12 +326,13 @@ export function AppearanceStep({
               <Blend className="h-4.5 w-4.5 text-muted-foreground" />
               <div>
                 <div className="text-sm font-medium text-foreground">
-                  Window transparency
+                  窗口透明度
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {glassSupported
-                    ? "See your desktop through the window"
-                    : "Not available on this platform"}
+                    ? "透过窗口看到桌面"
+                    : "当前平台不支持"
+                  }
                 </div>
               </div>
             </div>

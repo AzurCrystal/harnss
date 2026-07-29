@@ -69,17 +69,17 @@ const TOOL_TINTS: Record<string, { idle: string; hover: string; active: string }
 };
 
 export const PANEL_TOOLS_MAP: Record<string, ToolDef> = {
-  terminal: { id: "terminal", label: "Terminal", icon: Terminal },
-  browser: { id: "browser", label: "Browser", icon: Globe },
-  git: { id: "git", label: "Source Control", icon: GitBranch },
-  files: { id: "files", label: "Open Files", icon: FileText },
-  "project-files": { id: "project-files", label: "Project Files", icon: FolderTree },
-  mcp: { id: "mcp", label: "MCP Servers", icon: Plug },
+  terminal: { id: "terminal", label: "终端", icon: Terminal },
+  browser: { id: "browser", label: "浏览器", icon: Globe },
+  git: { id: "git", label: "源代码管理", icon: GitBranch },
+  files: { id: "files", label: "打开的文件", icon: FileText },
+  "project-files": { id: "project-files", label: "项目文件", icon: FolderTree },
+  mcp: { id: "mcp", label: "MCP 服务器", icon: Plug },
 };
 
 const CONTEXTUAL_TOOLS: ToolDef[] = [
-  { id: "tasks", label: "Tasks", icon: ListTodo },
-  { id: "agents", label: "Background Agents", icon: Bot },
+  { id: "tasks", label: "任务", icon: ListTodo },
+  { id: "agents", label: "后台智能体", icon: Bot },
 ];
 
 interface ToolPickerProps {
@@ -159,7 +159,7 @@ function ToolButton({
       <TooltipContent side="left" sideOffset={10}>
         <p className="text-xs font-medium">{tool.label}</p>
         {tooltipExtra}
-        {isBottom && <p className="text-[10px] text-background/50">Bottom panel</p>}
+        {isBottom && <p className="text-[10px] text-background/50">底部面板</p>}
       </TooltipContent>
     </Tooltip>
   );
@@ -182,8 +182,8 @@ function PanelToolWithMenu({
   onDragLeave,
   onDrop,
   onDragEnd,
-  moveToBottomLabel = "Move to Bottom",
-  moveToSideLabel = "Move to Side",
+  moveToBottomLabel = "移到底部",
+  moveToSideLabel = "移到侧边",
 }: {
   tool: ToolDef;
   isActive: boolean;
@@ -400,7 +400,7 @@ export const ToolPicker = memo(function ToolPicker({
                   onClick={() => onToggle(tool.id)}
                   tooltipExtra={hasTaskProgress ? (
                     <p className="text-[10px] text-background/50 tabular-nums">
-                      {taskProgress.completed}/{taskProgress.total} completed
+                      已完成 {taskProgress.completed}/{taskProgress.total}
                     </p>
                   ) : undefined}
                 />
@@ -431,7 +431,7 @@ export const ToolPicker = memo(function ToolPicker({
           onDragLeave={workspaceMode ? undefined : handleDragLeave}
           onDrop={workspaceMode ? undefined : (e) => handleDrop(e, tool.id)}
           onDragEnd={handleDragEnd}
-          moveToSideLabel="Move to Top Row"
+          moveToSideLabel="移到顶行"
         />
       ))}
 
@@ -458,7 +458,7 @@ export const ToolPicker = memo(function ToolPicker({
                   onDragLeave={workspaceMode ? undefined : handleDragLeave}
                   onDrop={workspaceMode ? undefined : (e) => handleDrop(e, tool.id)}
                   onDragEnd={handleDragEnd}
-                  moveToSideLabel="Move to Top Row"
+                  moveToSideLabel="移到顶行"
                 />
               ))}
             </div>
@@ -491,8 +491,8 @@ export const ToolPicker = memo(function ToolPicker({
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="left" sideOffset={10}>
-                  <p className="text-xs font-medium">Open in Editor</p>
-                  <p className="text-[10px] text-background/50">Right-click for options</p>
+                  <p className="text-xs font-medium">在编辑器中打开</p>
+                  <p className="text-[10px] text-background/50">右键单击查看更多选项</p>
                 </TooltipContent>
               </Tooltip>
               <DropdownMenuContent side="left" align="end" sideOffset={10}>

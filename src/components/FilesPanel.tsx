@@ -17,13 +17,12 @@ import {
   getCachedFilePanelData,
   type FilePanelData,
 } from "@/lib/session/derived-data";
-import type { EngineId, UIMessage } from "@/types";
+import type { UIMessage } from "@/types";
 
 interface FilesPanelProps {
   sessionId?: string | null;
   messages: UIMessage[];
   cwd?: string;
-  activeEngine?: EngineId;
   onScrollToToolCall?: (messageId: string) => void;
   enabled?: boolean;
   headerControls?: React.ReactNode;
@@ -33,35 +32,12 @@ export const FilesPanel = memo(function FilesPanel({
   sessionId,
   messages,
   cwd,
-  activeEngine,
   onScrollToToolCall,
   enabled = true,
   headerControls,
 }: FilesPanelProps) {
-  const [hasClaudeMd, setHasClaudeMd] = useState(false);
   const [data, setData] = useState<FilePanelData | null>(null);
 
-  useEffect(() => {
-    if (!enabled || activeEngine !== "claude" || !cwd) {
-      setHasClaudeMd(false);
-      return;
-    }
-
-    let cancelled = false;
-    window.claude
-      .readFile(`${cwd}/CLAUDE.md`)
-      .then((result) => {
-        if (cancelled) return;
-        setHasClaudeMd(Boolean(!result.error && result.content != null));
-      })
-      .catch(() => {
-        if (!cancelled) setHasClaudeMd(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeEngine, cwd, enabled]);
 
   const cacheSessionId = sessionId ?? "no-session";
   // Optimization: depend on messages.length and last message identity instead of
@@ -72,9 +48,9 @@ export const FilesPanel = memo(function FilesPanel({
   const lastMsgId = lastMsg?.id;
   const lastMsgTs = lastMsg?.timestamp;
   const cacheKey = useMemo(
-    () => buildSessionCacheKey(cacheSessionId, messages, `${cwd ?? ""}:${activeEngine ?? ""}:${hasClaudeMd ? "claude-md" : "no-claude-md"}`),
+    () => buildSessionCacheKey(cacheSessionId, messages, cwd ?? ""),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeEngine, cacheSessionId, cwd, hasClaudeMd, msgLen, lastMsgId, lastMsgTs],
+    [cacheSessionId, cwd, msgLen, lastMsgId, lastMsgTs],
   );
 
   useEffect(() => {
@@ -93,7 +69,7 @@ export const FilesPanel = memo(function FilesPanel({
         cacheKey,
         messages,
         cwd,
-        activeEngine === "claude" && hasClaudeMd,
+        false,
       );
       if (cancelled) return;
       startTransition(() => setData(next));
@@ -103,7 +79,7 @@ export const FilesPanel = memo(function FilesPanel({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [activeEngine, cacheKey, cacheSessionId, cwd, enabled, hasClaudeMd, messages]);
+  }, [cacheKey, cacheSessionId, cwd, enabled, messages]);
 
   const files = data?.files ?? [];
 
@@ -115,7 +91,7 @@ export const FilesPanel = memo(function FilesPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader icon={FileText} label="Open Files" iconClass="text-amber-600/70 dark:text-amber-200/50">
+      <PanelHeader icon={FileText} label="打开的文件" iconClass="text-amber-600/70 dark:text-amber-200/50">
         {files.length > 0 && (
           <span className="text-[10px] tabular-nums text-foreground/35">{files.length}</span>
         )}
@@ -126,14 +102,14 @@ export const FilesPanel = memo(function FilesPanel({
         <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4">
           <Loader2 className="h-3 w-3 animate-spin text-foreground/25" />
           <p className="text-center text-[10px] text-muted-foreground/40">
-            Indexing…
+            正在索引…
           </p>
         </div>
       ) : files.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-1.5 p-6">
           <FileText className="h-4 w-4 text-foreground/15" />
           <p className="text-center text-[10px] leading-relaxed text-muted-foreground/40">
-            Accessed files will appear here
+            访问过的文件将显示在这里
           </p>
         </div>
       ) : (
@@ -175,7 +151,7 @@ export const FilesPanel = memo(function FilesPanel({
                     </TooltipTrigger>
                     <TooltipContent side="left" sideOffset={8}>
                       <p className="text-xs">
-                        {file.path} ({label.toLowerCase()}{rangeText ? `, ${rangeText}` : ""}{file.totalLines ? ` of ${file.totalLines}` : ""})
+                        {file.path}（{label.toLowerCase()}{rangeText ? `，${rangeText}` : ""}{file.totalLines ? `，共 ${file.totalLines} 行` : ""}）
                       </p>
                     </TooltipContent>
                   </Tooltip>

@@ -373,7 +373,7 @@ export function MainTopToolArea({
                             {renderToolContent(stackEntry.island.toolId, (
                               <PanelDockControls
                                 isBottom={false}
-                                moveLabel="Move to bottom"
+                                moveLabel="移到底部"
                                 onMovePlacement={() => workspace.moveToolIsland(stackEntry.island.id, "bottom")}
                                 onDragStart={(event) => {
                                   event.dataTransfer.setData("text/plain", stackEntry.island.id);

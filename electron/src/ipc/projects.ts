@@ -145,7 +145,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
       const projects = readProjects();
       const fromIdx = projects.findIndex((p) => p.id === projectId);
       const toIdx = projects.findIndex((p) => p.id === targetProjectId);
-      if (fromIdx === -1 || toIdx === -1) return { error: "Project not found" };
+      if (fromIdx === -1 || toIdx === -1) return { error: "项目未找到" };
       const [moved] = projects.splice(fromIdx, 1);
       projects.splice(toIdx, 0, moved);
       writeProjects(projects);

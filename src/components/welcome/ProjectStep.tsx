@@ -38,7 +38,7 @@ export function ProjectStep({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        Your first project
+        你的第一个项目
       </motion.h2>
 
       <motion.p
@@ -47,7 +47,7 @@ export function ProjectStep({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.18 }}
       >
-        Point Harnss at any folder and start building.
+        将 Harnss 指向任意文件夹，即可开始构建。
       </motion.p>
 
       <motion.button
@@ -57,7 +57,7 @@ export function ProjectStep({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.28 }}
       >
-        Choose folder
+        选择文件夹
       </motion.button>
 
       <motion.button
@@ -67,7 +67,7 @@ export function ProjectStep({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.38 }}
       >
-        Skip for now
+        暂时跳过
       </motion.button>
     </div>
   );

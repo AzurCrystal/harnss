@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { GitBranch, ChevronRight } from "lucide-react";
-import type { ChatFolder, InstalledAgent } from "@/types";
+import type { ChatFolder } from "@/types";
 import type { FolderSidebarItem, SessionSidebarItem } from "@/lib/sidebar/grouping";
 import { FolderSection } from "./FolderSection";
 import { SessionItem } from "./SessionItem";
@@ -12,14 +12,12 @@ export function BranchSection({
   activeSessionId,
   islandLayout,
   allFolders,
-  agents,
 }: {
   branchName: string;
   children: Array<FolderSidebarItem | SessionSidebarItem>;
   activeSessionId: string | null;
   islandLayout: boolean;
   allFolders: ChatFolder[];
-  agents?: InstalledAgent[];
 }) {
   const {
     selectSession,
@@ -68,7 +66,6 @@ export function BranchSection({
                   onPinFolder={(pinned) => pinFolder(folder.projectId, folder.id, pinned)}
                   onRenameFolder={(name) => renameFolder(folder.projectId, folder.id, name)}
                   onDeleteFolder={() => deleteFolder(folder.projectId, folder.id)}
-                  agents={agents}
                 />
               );
             }
@@ -85,7 +82,6 @@ export function BranchSection({
                 onPinToggle={() => pinSession(session.id, !session.pinned)}
                 folders={allFolders}
                 onMoveToFolder={(folderId) => moveSessionToFolder(session.id, folderId)}
-                agents={agents}
                 onOpenInSplitView={openInSplitView ? () => openInSplitView(session.id) : undefined}
                 canOpenInSplitView={canOpenSessionInSplitView?.(session.id) ?? true}
               />

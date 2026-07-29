@@ -66,8 +66,8 @@ function getFileIconColor(extension?: string): string {
   return EXTENSION_ICON_COLORS[extension] ?? "text-muted-foreground/70";
 }
 
-const REVEAL_LABEL = isMac ? "Reveal in Finder" : "Show in Explorer";
-const TRASH_LABEL = isMac ? "Move to Trash" : "Move to Recycle Bin";
+const REVEAL_LABEL = isMac ? "在访达中显示" : "在资源管理器中显示";
+const TRASH_LABEL = isMac ? "移到废纸篓" : "移到回收站";
 
 /** Get the parent directory of a path (e.g. "src/lib/foo.ts" → "src/lib"). */
 function dirname(p: string): string {
@@ -192,12 +192,12 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
   if (!cwd) {
     return (
       <div className="flex h-full flex-col">
-        <PanelHeader icon={FolderTree} label="Project Files" iconClass="text-teal-600/70 dark:text-teal-200/50">
+        <PanelHeader icon={FolderTree} label="项目文件" iconClass="text-teal-600/70 dark:text-teal-200/50">
           {headerControls}
         </PanelHeader>
         <div className="flex flex-1 flex-col items-center justify-center gap-1">
           <FolderTree className="h-3.5 w-3.5 text-foreground/15" />
-          <p className="text-[10px] text-foreground/30">No project selected</p>
+          <p className="text-[10px] text-foreground/30">未选择项目</p>
         </div>
       </div>
     );
@@ -205,7 +205,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader icon={FolderTree} label="Project Files" iconClass="text-teal-600/70 dark:text-teal-200/50">
+      <PanelHeader icon={FolderTree} label="项目文件" iconClass="text-teal-600/70 dark:text-teal-200/50">
         {totalFiles > 0 && (
           <span className="text-[10px] tabular-nums text-foreground/35">{totalFiles}</span>
         )}
@@ -215,7 +215,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
           className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md
             text-foreground/35 transition-colors
             hover:text-foreground/60 hover:bg-foreground/[0.06]"
-          title="Refresh files"
+          title="刷新文件"
         >
           <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
         </button>
@@ -229,7 +229,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
           type="text"
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Search files…"
+          placeholder="搜索文件…"
           className="h-5 w-full bg-transparent text-[11px] text-foreground/75 outline-none placeholder:text-foreground/25"
         />
       </div>
@@ -242,7 +242,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
         {loading && !tree && (
           <div className="flex flex-col items-center justify-center gap-1 py-6">
             <RefreshCw className="h-3 w-3 animate-spin text-foreground/25" />
-            <p className="text-[10px] text-foreground/30">Loading…</p>
+            <p className="text-[10px] text-foreground/30">正在加载…</p>
           </div>
         )}
 
@@ -255,7 +255,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
         {flatItems.length === 0 && !loading && !error && tree && (
           <div className="flex items-center justify-center py-6">
             <p className="text-[10px] text-foreground/30">
-              {debouncedQuery ? `No matches for "${debouncedQuery}"` : "No files found"}
+              {debouncedQuery ? `没有与“${debouncedQuery}”匹配的结果` : "未找到文件"}
             </p>
           </div>
         )}
@@ -353,7 +353,7 @@ function InlineCreateInput({
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        placeholder={type === "folder" ? "folder name" : "filename"}
+        placeholder={type === "folder" ? "文件夹名称" : "文件名"}
         className="min-w-0 flex-1 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-xs text-foreground outline-none ring-1 ring-foreground/10 focus:ring-foreground/20"
       />
     </div>
@@ -599,35 +599,35 @@ const FileTreeRow = memo(function FileTreeRow({
               <>
                 <DropdownMenuItem onClick={handleOpenInEditor}>
                   <ExternalLink className="me-2 h-3.5 w-3.5" />
-                  Open in Editor
+                  在编辑器中打开
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleClick}>
                   <Eye className="me-2 h-3.5 w-3.5" />
-                  Preview
+                  预览
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={handleNewFile}>
               <FilePlus className="me-2 h-3.5 w-3.5" />
-              New File
+              新建文件
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleNewFolder}>
               <FolderPlus className="me-2 h-3.5 w-3.5" />
-              New Folder
+              新建文件夹
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleCopyName}>
               <Type className="me-2 h-3.5 w-3.5" />
-              Copy Name
+              复制名称
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleCopyPath}>
               <Copy className="me-2 h-3.5 w-3.5" />
-              Copy Path
+              复制路径
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleCopyAbsolutePath}>
               <ClipboardCopy className="me-2 h-3.5 w-3.5" />
-              Copy Absolute Path
+              复制绝对路径
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleRevealInFinder}>
@@ -636,7 +636,7 @@ const FileTreeRow = memo(function FileTreeRow({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleStartRename}>
               <Pencil className="me-2 h-3.5 w-3.5" />
-              Rename
+              重命名
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"

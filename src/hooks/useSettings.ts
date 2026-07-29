@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ToolId } from "@/types/tools";
 import type { AcpPermissionBehavior, ClaudeEffort, EngineId, MacBackgroundEffect, ThemeOption } from "@/types";
+type PersistedModelEngine = EngineId | "claude" | "acp" | "codex";
 
 // ── Helpers ──
 
@@ -68,7 +69,8 @@ const DEFAULT_MODEL = "default";
 const DEFAULT_PERMISSION_MODE = "default";
 const DEFAULT_PLAN_MODE = true;
 const DEFAULT_CLAUDE_EFFORT: ClaudeEffort = "high";
-const DEFAULT_ENGINE_MODELS: Record<EngineId, string> = {
+const DEFAULT_ENGINE_MODELS: Record<PersistedModelEngine, string> = {
+  omp: DEFAULT_MODEL,
   claude: DEFAULT_MODEL,
   acp: "",
   codex: "",
@@ -181,7 +183,7 @@ function readToolOrder(pid: string): ToolId[] {
   return result;
 }
 
-function engineModelKey(pid: string, engine: EngineId): string {
+function engineModelKey(pid: string, engine: PersistedModelEngine): string {
   return `harnss-${pid}-model-${engine}`;
 }
 
@@ -194,7 +196,7 @@ function isCodexLikeModel(model: string): boolean {
   return /^gpt[-\w.]*$/i.test(normalized) || /^o[0-9][\w.-]*$/i.test(normalized);
 }
 
-function readModelForEngine(pid: string, engine: EngineId): string {
+function readModelForEngine(pid: string, engine: PersistedModelEngine): string {
   const byEngine = localStorage.getItem(engineModelKey(pid, engine));
   if (byEngine && byEngine.trim().length > 0) return byEngine.trim();
 
@@ -213,8 +215,9 @@ function readModelForEngine(pid: string, engine: EngineId): string {
   return DEFAULT_ENGINE_MODELS[engine];
 }
 
-function readEngineModels(pid: string): Record<EngineId, string> {
+function readEngineModels(pid: string): Record<PersistedModelEngine, string> {
   return {
+    omp: readModelForEngine(pid, "omp"),
     claude: readModelForEngine(pid, "claude"),
     acp: readModelForEngine(pid, "acp"),
     codex: readModelForEngine(pid, "codex"),
@@ -257,7 +260,7 @@ function writeProjectLayoutState(pid: string, next: ProjectLayoutState): void {
   projectLayoutCache.set(pid, cloneProjectLayoutState(next));
 }
 
-export function useSettings(projectId: string | null, engine: EngineId = "claude"): Settings {
+export function useSettings(projectId: string | null, engine: EngineId = "omp"): Settings {
   const pid = projectId ?? "__none__";
 
   // ── Global settings ──
@@ -462,7 +465,7 @@ export function useSettings(projectId: string | null, engine: EngineId = "claude
 
   // ── Per-project settings ──
 
-  const [modelsByEngine, setModelsByEngineRaw] = useState<Record<EngineId, string>>(() =>
+  const [modelsByEngine, setModelsByEngineRaw] = useState<Record<PersistedModelEngine, string>>(() =>
     readEngineModels(pid),
   );
   const model = modelsByEngine[engine] ?? DEFAULT_ENGINE_MODELS[engine];

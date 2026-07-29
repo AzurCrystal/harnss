@@ -15,7 +15,7 @@ import { GitPanel } from "@/components/git/GitPanel";
 import { FilesPanel } from "@/components/FilesPanel";
 import { ProjectFilesPanel } from "@/components/ProjectFilesPanel";
 import { McpPanel } from "@/components/McpPanel";
-import type { PanelToolId, EngineId, McpServerConfig, McpServerStatus, UIMessage, GrabbedElement } from "@/types";
+import type { PanelToolId, UIMessage, GrabbedElement } from "@/types";
 import type { TerminalTab } from "@/lib/terminal-tabs";
 import type { ResolvedTheme } from "@/hooks/useTheme";
 
@@ -29,12 +29,11 @@ export interface ToolIslandContentProps {
   // Session / project context
   projectPath: string | undefined;
   projectRoot: string | undefined;
-  projectId: string | null;
   sessionId: string | null;
   messages: UIMessage[];
-  activeEngine: EngineId | undefined;
   isActiveSessionPane: boolean;
-  hasLiveSession: boolean;
+  isSessionProcessing: boolean;
+  isSessionCompacting: boolean;
 
   // Space / terminal context
   spaceId: string;
@@ -53,12 +52,6 @@ export interface ToolIslandContentProps {
   onPreviewFile?: (path: string, rect: DOMRect) => void;
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
-  // MCP panel
-  mcpServerStatuses: McpServerStatus[];
-  mcpStatusPreliminary: boolean;
-  onRefreshMcpStatus: () => void;
-  onReconnectMcpServer: (name: string) => Promise<void> | void;
-  onRestartWithMcpServers: (servers: McpServerConfig[]) => Promise<void> | void;
 }
 
 export function ToolIslandContent({
@@ -67,12 +60,11 @@ export function ToolIslandContent({
   headerControls,
   projectPath,
   projectRoot,
-  projectId,
   sessionId,
   messages,
-  activeEngine,
   isActiveSessionPane,
-  hasLiveSession,
+  isSessionProcessing,
+  isSessionCompacting,
   spaceId,
   terminalTabs,
   activeTerminalTabId,
@@ -87,11 +79,6 @@ export function ToolIslandContent({
   onPreviewFile,
   collapsedRepos,
   onToggleRepoCollapsed,
-  mcpServerStatuses,
-  mcpStatusPreliminary,
-  onRefreshMcpStatus,
-  onReconnectMcpServer,
-  onRestartWithMcpServers,
 }: ToolIslandContentProps): ReactNode {
   switch (toolId) {
     case "terminal":
@@ -123,8 +110,6 @@ export function ToolIslandContent({
           cwd={projectRoot}
           collapsedRepos={collapsedRepos}
           onToggleRepoCollapsed={onToggleRepoCollapsed}
-          activeEngine={activeEngine}
-          activeSessionId={sessionId}
           headerControls={headerControls}
         />
       );
@@ -134,7 +119,6 @@ export function ToolIslandContent({
           sessionId={sessionId}
           messages={messages}
           cwd={projectPath}
-          activeEngine={activeEngine}
           onScrollToToolCall={onScrollToToolCall}
           enabled={true}
           headerControls={headerControls}
@@ -152,13 +136,10 @@ export function ToolIslandContent({
     case "mcp":
       return (
         <McpPanel
-          projectId={projectId}
-          runtimeStatuses={mcpServerStatuses}
-          isPreliminary={isActiveSessionPane ? mcpStatusPreliminary : false}
-          hasLiveSession={hasLiveSession}
-          onRefreshStatus={onRefreshMcpStatus}
-          onReconnect={onReconnectMcpServer}
-          onRestartWithServers={onRestartWithMcpServers}
+          projectPath={projectPath}
+          sessionId={sessionId}
+          isSessionProcessing={isSessionProcessing}
+          isSessionCompacting={isSessionCompacting}
           headerControls={headerControls}
         />
       );

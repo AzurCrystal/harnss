@@ -35,14 +35,14 @@ export function createUserMessage(
 export function formatResultError(subtype: string, detail: string): string {
   switch (subtype) {
     case "error_max_turns":
-      return "Session reached the maximum number of turns. Start a new session to continue.";
+      return "会话已达到最大轮数。请新建会话以继续。";
     case "error_max_budget_usd":
-      return "Session exceeded the cost budget limit.";
+      return "会话已超出费用预算上限。";
     case "error_max_structured_output_retries":
-      return "Structured output failed after maximum retries.";
+      return "结构化输出在达到最大重试次数后仍失败。";
     case "error_during_execution":
-      return detail || "An error occurred during execution.";
+      return detail || "执行期间发生错误。";
     default:
-      return detail || "An unexpected error occurred.";
+      return detail || "发生了意外错误。";
   }
 }

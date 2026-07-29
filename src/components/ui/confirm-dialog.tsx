@@ -46,8 +46,8 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel = "确认",
+  cancelLabel = "取消",
   confirmVariant = "destructive",
 }: ConfirmDialogProps) {
   const handleConfirm = useCallback(() => {

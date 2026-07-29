@@ -68,11 +68,11 @@ export function getCategoryTone(category?: JiraIssue["statusCategory"]): Categor
 export function getCategoryLabel(category?: JiraIssue["statusCategory"]): string {
   switch (category) {
     case "todo":
-      return "To do";
+      return "待办";
     case "done":
-      return "Done";
+      return "已完成";
     default:
-      return "In progress";
+      return "进行中";
   }
 }
 

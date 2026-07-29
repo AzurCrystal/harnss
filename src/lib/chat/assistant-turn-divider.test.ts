@@ -34,9 +34,9 @@ function makeToolCall(id: string, timestamp: number): UIMessage {
 
 describe("formatAssistantTurnDividerLabel", () => {
   it("formats seconds, minutes, and hours compactly", () => {
-    expect(formatAssistantTurnDividerLabel(900)).toBe("Worked for 1s");
-    expect(formatAssistantTurnDividerLabel(65_000)).toBe("Worked for 1m 5s");
-    expect(formatAssistantTurnDividerLabel(7_200_000)).toBe("Worked for 2h");
+    expect(formatAssistantTurnDividerLabel(900)).toBe("耗时 1 秒");
+    expect(formatAssistantTurnDividerLabel(65_000)).toBe("耗时 1 分 5 秒");
+    expect(formatAssistantTurnDividerLabel(7_200_000)).toBe("耗时 2 小时");
   });
 });
 
@@ -53,7 +53,7 @@ describe("computeAssistantTurnDividerLabels", () => {
 
     const result = computeAssistantTurnDividerLabels(messages, false);
 
-    expect([...result.entries()]).toEqual([["a3", "Worked for 3m"]]);
+    expect([...result.entries()]).toEqual([["a3", "耗时 3 分"]]);
   });
 
   it("does not add a divider for single-message assistant turns", () => {
@@ -74,7 +74,7 @@ describe("computeAssistantTurnDividerLabels", () => {
 
     const result = computeAssistantTurnDividerLabels(messages, false);
 
-    expect(result.get("a2")).toBe("Worked for 35s");
+    expect(result.get("a2")).toBe("耗时 35 秒");
   });
 
   it("hides the divider for the current turn while processing is still active", () => {

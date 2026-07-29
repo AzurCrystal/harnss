@@ -94,43 +94,43 @@ export const ContextGauge = memo(function ContextGauge({
       <TooltipContent side="top" className="max-w-64">
         <div className="space-y-1.5 text-xs">
           <div className="font-medium">
-            {isCompacting ? "Compacting..." : `Context: ${percent.toFixed(1)}%`}
+            {isCompacting ? "正在压缩…" : `上下文：${percent.toFixed(1)}%`}
           </div>
           <div className="space-y-0.5 opacity-70">
             <div className="flex justify-between gap-4">
-              <span>Input tokens</span>
+              <span>输入 tokens</span>
               <span className="font-mono">
                 {formatTokenCount(contextUsage.inputTokens)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
-              <span>Cache read</span>
+              <span>缓存读取</span>
               <span className="font-mono">
                 {formatTokenCount(contextUsage.cacheReadTokens)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
-              <span>Cache creation</span>
+              <span>缓存创建</span>
               <span className="font-mono">
                 {formatTokenCount(contextUsage.cacheCreationTokens)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
-              <span>Output tokens</span>
+              <span>输出 tokens</span>
               <span className="font-mono">
                 {formatTokenCount(contextUsage.outputTokens)}
               </span>
             </div>
           </div>
           <div className="flex justify-between gap-4 border-t border-background/20 pt-1">
-            <span>Total / Window</span>
+            <span>总计 / 窗口</span>
             <span className="font-mono">
               {formatTokenCount(totalInput)} /{" "}
               {formatTokenCount(contextUsage.contextWindow)}
             </span>
           </div>
           <div className="border-t border-background/20 pt-1.5 opacity-50">
-            Click to compact context
+            点击压缩上下文
           </div>
         </div>
       </TooltipContent>

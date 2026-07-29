@@ -41,10 +41,10 @@ export function FeatureTourStep(_props: WizardStepProps) {
               color: "oklch(0.60 0.22 300)",
             }}
           >
-            What&apos;s inside
+            功能一览
           </h2>
           <p className="mt-3 text-lg text-muted-foreground">
-            A few things that make Harnss different.
+            Harnss 的几个与众不同之处。
           </p>
         </motion.div>
 
@@ -57,11 +57,11 @@ export function FeatureTourStep(_props: WizardStepProps) {
         >
           <div className="mb-3 flex items-center gap-2.5">
             <Palette className="h-4.5 w-4.5 text-foreground/40" />
-            <h3 className="text-sm font-semibold text-foreground">Spaces</h3>
+            <h3 className="text-sm font-semibold text-foreground">空间</h3>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
-            Organize projects into color-coded workspaces. Each space tints the
-            entire UI with its own hue.
+            将项目整理到以颜色区分的工作区中。每个空间都会用专属色调
+            渲染整个界面。
           </p>
           <div className="flex items-center gap-4">
             {SHOWCASE_SPACES.map((space, i) => (
@@ -95,11 +95,11 @@ export function FeatureTourStep(_props: WizardStepProps) {
         >
           <div className="mb-3 flex items-center gap-2.5">
             <Layers className="h-4.5 w-4.5 text-foreground/40" />
-            <h3 className="text-sm font-semibold text-foreground">Tool Panels</h3>
+            <h3 className="text-sm font-semibold text-foreground">工具面板</h3>
           </div>
           <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
-            Terminal, source control, browser, and more — integrated into the
-            sidebar. Toggle them on and off as you work.
+            终端、源代码管理、浏览器等面板集成在侧边栏中，工作时可随时
+            开关。
           </p>
           <div className="grid grid-cols-3 gap-x-4 gap-y-3">
             {SHOWCASE_TOOLS.map((tool, i) => {

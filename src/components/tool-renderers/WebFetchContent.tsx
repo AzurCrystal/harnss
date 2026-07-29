@@ -36,7 +36,7 @@ export function WebFetchContent({ message }: { message: UIMessage }) {
         </div>
       )}
       {truncated && (
-        <p className="text-[10px] text-foreground/30 italic">Content truncated</p>
+        <p className="text-[10px] text-foreground/30 italic">内容已截断</p>
       )}
     </div>
   );

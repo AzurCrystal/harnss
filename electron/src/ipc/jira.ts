@@ -101,8 +101,8 @@ export function register() {
     ): Promise<JiraAuthResult> => {
       try {
         if (method === "apitoken") {
-          if (!apiToken) return { error: "API token is required" };
-          if (!email) return { error: "Email is required for API token authentication" };
+          if (!apiToken) return { error: "需要 API 令牌" };
+          if (!email) return { error: "使用 API 令牌认证需要邮箱" };
 
           saveJiraOAuthData(instanceUrl, {
             accessToken: apiToken,
@@ -116,7 +116,7 @@ export function register() {
 
         // OAuth flow -- not yet implemented
         return {
-          error: "OAuth authentication not yet implemented. Please use API token.",
+          error: "尚未实现 OAuth 认证，请使用 API 令牌。",
         };
       } catch (error) {
         return { error: reportError("JIRA_AUTH_ERR", error) };

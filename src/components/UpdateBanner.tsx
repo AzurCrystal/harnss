@@ -73,7 +73,7 @@ export const UpdateBanner = memo(function UpdateBanner() {
       setDismissed(false);
       setState({
         phase: "error",
-        message: err instanceof Error ? err.message : "Failed to restart and install update",
+        message: err instanceof Error ? err.message : "重启并安装更新失败",
       });
     });
   }, []);
@@ -88,7 +88,7 @@ export const UpdateBanner = memo(function UpdateBanner() {
             <ArrowDownToLine className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
             <div className="min-w-0 flex-1">
               <span className="font-medium text-sidebar-foreground/90">v{state.version}</span>
-              <span className="text-sidebar-foreground/50"> available</span>
+              <span className="text-sidebar-foreground/50"> 可用</span>
             </div>
             <button
               className="shrink-0 text-sidebar-foreground/30 opacity-0 transition-opacity hover:text-sidebar-foreground/60 group-hover:opacity-100"
@@ -100,7 +100,7 @@ export const UpdateBanner = memo(function UpdateBanner() {
               className="shrink-0 rounded px-2 py-0.5 font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-foreground/10"
               onClick={handleDownload}
             >
-              Update
+              更新
             </button>
           </>
         )}
@@ -108,7 +108,7 @@ export const UpdateBanner = memo(function UpdateBanner() {
         {state.phase === "downloading" && (
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sidebar-foreground/60">Downloading...</span>
+              <span className="text-sidebar-foreground/60">下载中…</span>
               <span className="tabular-nums text-sidebar-foreground/50">{state.percent}%</span>
             </div>
             <div className="h-1 overflow-hidden rounded-full bg-sidebar-foreground/10">
@@ -125,7 +125,7 @@ export const UpdateBanner = memo(function UpdateBanner() {
             <RefreshCw className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
             <div className="min-w-0 flex-1">
               <span className="font-medium text-sidebar-foreground/90">v{state.version}</span>
-              <span className="text-sidebar-foreground/50"> ready</span>
+              <span className="text-sidebar-foreground/50"> 已就绪</span>
             </div>
             <button
               className="shrink-0 text-sidebar-foreground/30 opacity-0 transition-opacity hover:text-sidebar-foreground/60 group-hover:opacity-100"
@@ -142,10 +142,10 @@ export const UpdateBanner = memo(function UpdateBanner() {
               {isInstalling ? (
                 <span className="inline-flex items-center gap-1">
                   <RefreshCw className="h-3 w-3 animate-spin" />
-                  Restarting...
+                  正在重启…
                 </span>
               ) : (
-                "Restart"
+                "重启"
               )}
             </button>
           </>

@@ -157,7 +157,7 @@ export const ToolGroupBlock = memo(function ToolGroupBlock({
     };
   }, [isMorphing, morphDurationMs]);
 
-  // Build categorized summary: "Edited 3 files, read 2 files, ran 1 command, ran 2 searches, and used 1 tool"
+  // Build a categorized summary for the collapsed tool group.
   const toolSummary = useMemo(() => {
     const EDIT_TOOLS = new Set(["Edit", "Write", "NotebookEdit"]);
     const READ_TOOLS = new Set(["Read"]);
@@ -180,19 +180,13 @@ export const ToolGroupBlock = memo(function ToolGroupBlock({
     }
 
     const parts: string[] = [];
-    if (editCount > 0) parts.push(`edited ${editCount} file${editCount !== 1 ? "s" : ""}`);
-    if (readCount > 0) parts.push(`read ${readCount} file${readCount !== 1 ? "s" : ""}`);
-    if (commandCount > 0) parts.push(`ran ${commandCount} command${commandCount !== 1 ? "s" : ""}`);
-    if (searchCount > 0) parts.push(`ran ${searchCount} search${searchCount !== 1 ? "es" : ""}`);
-    if (otherCount > 0) parts.push(`used ${otherCount} tool${otherCount !== 1 ? "s" : ""}`);
+    if (editCount > 0) parts.push(`编辑了 ${editCount} 个文件`);
+    if (readCount > 0) parts.push(`读取了 ${readCount} 个文件`);
+    if (commandCount > 0) parts.push(`运行了 ${commandCount} 个命令`);
+    if (searchCount > 0) parts.push(`执行了 ${searchCount} 次搜索`);
+    if (otherCount > 0) parts.push(`使用了 ${otherCount} 个其他工具`);
 
-    if (parts.length === 0) return "";
-    let result: string;
-    if (parts.length === 1) result = parts[0];
-    else if (parts.length === 2) result = `${parts[0]} and ${parts[1]}`;
-    else result = `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
-
-    return result.charAt(0).toUpperCase() + result.slice(1);
+    return parts.join("、");
   }, [tools]);
 
   const toolIcons = useMemo(() => {
@@ -218,8 +212,8 @@ export const ToolGroupBlock = memo(function ToolGroupBlock({
       const isRunning = !tool.toolResult && !isError;
       const Icon = isError ? AlertCircle : getToolIcon(toolName);
       const label = isError
-        ? `Failed to ${getToolLabel(toolName, "failure") ?? "run tool"}`
-        : ((getToolLabel(toolName, isRunning ? "active" : "past") ?? toolName) || (isRunning ? "Running" : "Tool"));
+        ? (getToolLabel(toolName, "failure") ?? "工具运行失败")
+        : ((getToolLabel(toolName, isRunning ? "active" : "past") ?? toolName) || (isRunning ? "正在运行" : "工具"));
       const summary = formatCompactSummary(tool);
       return { id: tool.id, Icon, toolName, label, summary, isError };
     });

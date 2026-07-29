@@ -84,6 +84,6 @@ export function getAskUserQuestionAnswer(
   return (
     formatAnswerValue(orderedAnswersById[index]) ??
     formatAnswerValue(orderedAnswers[index]) ??
-    "No answer captured"
+    "未记录到回答"
   );
 }

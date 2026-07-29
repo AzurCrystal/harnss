@@ -76,6 +76,13 @@ jobs:
       - name: Build app
         run: pnpm build
 
+      - name: Download OMP binaries (mac arm64 + x64)
+        run: |
+          mkdir -p build/omp/darwin
+          curl -fsSL -o build/omp/darwin/omp \
+            "https://github.com/AzurCrystal/oh-my-pi/releases/latest/download/omp-darwin-arm64"
+          chmod +x build/omp/darwin/omp
+
       - name: Package (mac arm64 + x64)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -133,6 +140,14 @@ jobs:
 
       - name: Build app
         run: pnpm build
+
+      - name: Download OMP binary (win x64)
+        shell: bash
+        run: |
+          mkdir -p build/omp/win32
+          curl -fsSL -o build/omp/win32/omp.exe \
+            "https://github.com/AzurCrystal/oh-my-pi/releases/latest/download/omp-windows-x64.exe"
+          chmod +x build/omp/win32/omp.exe
 
       - name: Package (win x64 + arm64)
         env:
@@ -195,6 +210,13 @@ jobs:
 
       - name: Build app
         run: pnpm build
+
+      - name: Download OMP binary (linux x64)
+        run: |
+          mkdir -p build/omp/linux
+          curl -fsSL -o build/omp/linux/omp \
+            "https://github.com/AzurCrystal/oh-my-pi/releases/latest/download/omp-linux-x64"
+          chmod +x build/omp/linux/omp
 
       - name: Package (linux x64)
         run: >

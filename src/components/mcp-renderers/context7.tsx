@@ -58,12 +58,12 @@ function Context7LibraryListView({ rawText }: { rawText: string }) {
         </div>
       );
     }
-    return <McpEmptyState message="No libraries found" />;
+    return <McpEmptyState message="未找到库" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={libraries.length} noun="library" plural="libraries" />
+      <McpListHeader count={libraries.length} noun="库" />
       {libraries.map((lib) => {
         const reputationColor = lib.sourceReputation === "High"
           ? "text-emerald-400"
@@ -105,7 +105,7 @@ function Context7LibraryListView({ rawText }: { rawText: string }) {
                 {lib.codeSnippets != null && (
                   <span className="text-[10px] text-foreground/30 flex items-center gap-0.5">
                     <FileCode2 className="h-2.5 w-2.5" />
-                    {lib.codeSnippets.toLocaleString()} snippets
+                    {lib.codeSnippets.toLocaleString("zh-CN")} 个代码片段
                   </span>
                 )}
               </div>
@@ -197,7 +197,7 @@ function Context7DocsResultView({ rawText, toolInput }: { rawText: string; toolI
         </div>
       );
     }
-    return <McpEmptyState message="No documentation found" />;
+    return <McpEmptyState message="未找到文档" />;
   }
 
   return (
@@ -205,7 +205,7 @@ function Context7DocsResultView({ rawText, toolInput }: { rawText: string; toolI
       {/* Header */}
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">
-          {snippets.length} snippet{snippets.length !== 1 ? "s" : ""}
+          {snippets.length} 个代码片段
         </span>
         {libraryId && (
           <span className="text-[10px] font-mono text-foreground/30">{libraryId}</span>

@@ -25,10 +25,10 @@ export function PermissionsStep({
               color: "oklch(0.62 0.20 155)",
             }}
           >
-            Your rules
+            你的规则
           </h2>
           <p className="mt-3 text-lg text-muted-foreground">
-            Set how much freedom Claude gets. Change this anytime.
+            设置智能体可自主执行的操作范围，可随时更改。
           </p>
         </motion.div>
 

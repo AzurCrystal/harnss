@@ -44,9 +44,9 @@ export const ACCESS_COLOR: Record<AccessType, string> = {
 };
 
 export const ACCESS_LABEL: Record<AccessType, string> = {
-  read: "Read",
-  modified: "Modified",
-  created: "Created",
+  read: "读取",
+  modified: "已修改",
+  created: "已创建",
 };
 
 export function getToolAccess(toolName: string): AccessType | null {

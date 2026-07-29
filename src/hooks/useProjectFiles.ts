@@ -39,7 +39,7 @@ export function useProjectFiles(
     } catch (err) {
       if (id !== fetchIdRef.current) return;
       captureException(err instanceof Error ? err : new Error(String(err)), { label: "FILE_LIST_ERR" });
-      setError(err instanceof Error ? err.message : "Failed to list files");
+      setError(err instanceof Error ? err.message : "列出文件失败");
       setTree(null);
     } finally {
       if (id === fetchIdRef.current) {

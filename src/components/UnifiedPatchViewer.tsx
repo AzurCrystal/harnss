@@ -60,7 +60,7 @@ export const UnifiedPatchViewer = memo(function UnifiedPatchViewer({
             className="mt-1 flex items-center gap-1 text-[10px] font-medium text-foreground/40 hover:text-foreground/70 transition-colors"
           >
             <ChevronsUpDown className="h-3 w-3" />
-            {expanded ? "Collapse" : `Show all ${totalLines} lines`}
+            {expanded ? "收起" : `显示全部 ${totalLines} 行`}
           </button>
         )}
       </div>

@@ -13,7 +13,7 @@ export function WelcomeStep({ onNext }: WizardStepProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.0 }}
       >
-        Welcome to
+        欢迎使用
       </motion.p>
 
       <motion.h1
@@ -37,9 +37,9 @@ export function WelcomeStep({ onNext }: WizardStepProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        The workspace where you and AI
+        你与 AI 共同构建软件的
         <br />
-        build software together.
+        工作空间。
       </motion.p>
 
       <motion.button
@@ -49,7 +49,7 @@ export function WelcomeStep({ onNext }: WizardStepProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.34 }}
       >
-        Get Started
+        开始使用
         <ArrowRight className="h-4.5 w-4.5" />
       </motion.button>
     </div>

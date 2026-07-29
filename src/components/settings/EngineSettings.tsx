@@ -66,24 +66,24 @@ export const EngineSettings = memo(function EngineSettings({
   return (
     <div className="flex h-full flex-col">
       <SettingsHeader
-        title="Engines"
-        description="Configure engine-level runtime behavior and binary selection"
+        title="引擎"
+        description="配置引擎级运行时行为与可执行文件选择"
       />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-6 py-2">
           <SettingsSection icon={Server} label="Claude Code" first>
             <SettingRow
-              label="Claude binary source"
-              description="Choose how Harnss resolves the Claude executable."
+              label="Claude 可执行文件来源"
+              description="选择 Harnss 解析 Claude 可执行文件的方式。"
             >
               <SettingsSelect
                 value={claudeBinarySource}
                 onValueChange={handleClaudeBinarySourceChange}
                 options={[
-                  { value: "auto", label: "Auto detect" },
-                  { value: "managed", label: "Managed install" },
-                  { value: "custom", label: "Custom path" },
+                  { value: "auto", label: "自动检测" },
+                  { value: "managed", label: "托管安装" },
+                  { value: "custom", label: "自定义路径" },
                 ]}
                 className="w-44"
               />
@@ -91,8 +91,8 @@ export const EngineSettings = memo(function EngineSettings({
 
             {claudeBinarySource === "custom" && (
               <SettingRow
-                label="Custom Claude path"
-                description="Absolute path to claude executable (claude or claude.exe)."
+                label="自定义 Claude 路径"
+                description="claude 可执行文件的绝对路径（claude 或 claude.exe）。"
               >
                 <input
                   type="text"
@@ -104,7 +104,7 @@ export const EngineSettings = memo(function EngineSettings({
                   }}
                   spellCheck={false}
                   className="h-8 w-80 rounded-md border border-foreground/10 bg-background px-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-foreground/20 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
-                  placeholder="Absolute path to claude executable"
+                  placeholder="claude 可执行文件的绝对路径"
                 />
               </SettingRow>
             )}
@@ -112,16 +112,16 @@ export const EngineSettings = memo(function EngineSettings({
 
           <SettingsSection icon={Server} label="Codex">
             <SettingRow
-              label="Codex binary source"
-              description="Choose how Harnss resolves the Codex executable."
+              label="Codex 可执行文件来源"
+              description="选择 Harnss 解析 Codex 可执行文件的方式。"
             >
               <SettingsSelect
                 value={codexBinarySource}
                 onValueChange={handleCodexBinarySourceChange}
                 options={[
-                  { value: "auto", label: "Auto detect" },
-                  { value: "managed", label: "Managed download" },
-                  { value: "custom", label: "Custom path" },
+                  { value: "auto", label: "自动检测" },
+                  { value: "managed", label: "托管下载" },
+                  { value: "custom", label: "自定义路径" },
                 ]}
                 className="w-44"
               />
@@ -129,8 +129,8 @@ export const EngineSettings = memo(function EngineSettings({
 
             {codexBinarySource === "custom" && (
               <SettingRow
-                label="Custom Codex path"
-                description="Absolute path to codex executable (codex or codex.exe)."
+                label="自定义 Codex 路径"
+                description="codex 可执行文件的绝对路径（codex 或 codex.exe）。"
               >
                 <input
                   type="text"
@@ -142,7 +142,7 @@ export const EngineSettings = memo(function EngineSettings({
                   }}
                   spellCheck={false}
                   className="h-8 w-80 rounded-md border border-foreground/10 bg-background px-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-foreground/20 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
-                  placeholder="Absolute path to codex executable"
+                  placeholder="codex 可执行文件的绝对路径"
                 />
               </SettingRow>
             )}

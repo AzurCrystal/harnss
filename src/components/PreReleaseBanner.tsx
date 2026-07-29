@@ -36,16 +36,16 @@ export const PreReleaseBanner = memo(function PreReleaseBanner({
           <FlaskConical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
           <div className="min-w-0 flex-1">
             <p className="font-medium text-sidebar-foreground/90">
-              Pre-release version
+              预发布版本
             </p>
             <p className="mt-0.5 text-sidebar-foreground/60 leading-relaxed">
-              v{info.version} is experimental and may contain bugs.{" "}
+              v{info.version} 为实验性版本，可能存在缺陷。{" "}
               <button
                 onClick={handleOpenSettings}
                 className="inline-flex items-center gap-0.5 text-sidebar-foreground/70 underline decoration-sidebar-foreground/30 underline-offset-2 transition-colors hover:text-sidebar-foreground hover:decoration-sidebar-foreground/50"
               >
                 <Settings className="h-2.5 w-2.5" />
-                Switch to stable
+                切换到稳定版
               </button>
             </p>
           </div>

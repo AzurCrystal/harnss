@@ -36,13 +36,13 @@ export function AskUserQuestionContent({ message }: { message: UIMessage }) {
             {!hasResult && (
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-foreground/25 italic">
                 <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                Waiting for answer…
+                等待回答…
               </div>
             )}
 
             {answer && (
               <div className="mt-0.5">
-                <span className="text-[11px] text-foreground/35">Answer: </span>
+                <span className="text-[11px] text-foreground/35">回答：</span>
                 <span className="text-[12px] text-foreground/75">{answer}</span>
               </div>
             )}

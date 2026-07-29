@@ -2,7 +2,6 @@ import { memo, useState, useCallback, useEffect } from "react";
 import {
   SlidersHorizontal,
   Bell,
-  Bot,
   Plug,
   Cpu,
   Info,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AgentSettings } from "@/components/settings/AgentSettings";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
@@ -28,11 +26,10 @@ import { AnalyticsSettings } from "@/components/settings/AnalyticsSettings";
 import { useSettingsStore } from "@/stores/settings-store";
 import { isMac } from "@/lib/utils";
 import type { AppSettings } from "@/types";
-import { useAgentContext } from "./AgentContext";
 
 // ── Section definitions ──
 
-export type SettingsSection = "general" | "appearance" | "notifications" | "analytics" | "agents" | "mcp" | "engines" | "skills" | "custom-agents" | "advanced" | "about";
+export type SettingsSection = "general" | "appearance" | "notifications" | "analytics" | "mcp" | "engines" | "skills" | "custom-agents" | "advanced" | "about";
 
 interface NavItem {
   id: SettingsSection;
@@ -43,17 +40,16 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "general", label: "General", icon: SlidersHorizontal },
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "agents", label: "ACP Agents", icon: Bot },
-  { id: "mcp", label: "MCP Servers", icon: Plug },
-  { id: "engines", label: "Engines", icon: Cpu },
-  { id: "skills", label: "Skills", icon: Sparkles, comingSoon: true },
-  { id: "custom-agents", label: "Agents", icon: Users, comingSoon: true },
-  { id: "advanced", label: "Advanced", icon: Wrench },
-  { id: "about", label: "About", icon: Info },
+  { id: "general", label: "通用", icon: SlidersHorizontal },
+  { id: "appearance", label: "外观", icon: Palette },
+  { id: "notifications", label: "通知", icon: Bell },
+  { id: "analytics", label: "分析", icon: BarChart3 },
+  { id: "mcp", label: "MCP 服务器", icon: Plug },
+  { id: "engines", label: "引擎", icon: Cpu },
+  { id: "skills", label: "技能", icon: Sparkles, comingSoon: true },
+  { id: "custom-agents", label: "智能体", icon: Users, comingSoon: true },
+  { id: "advanced", label: "高级", icon: Wrench },
+  { id: "about", label: "关于", icon: Info },
 ];
 
 // ── Props ──
@@ -66,7 +62,7 @@ interface SettingsViewProps {
   onToggleSidebar?: () => void;
   /** Resets the welcome wizard so it shows again. Dev-only. */
   onReplayWelcome: () => void;
-  /** Open directly to a specific section (e.g. "agents" from the engine picker). */
+  /** Open directly to a specific section. */
   initialSection?: SettingsSection;
 }
 
@@ -81,7 +77,6 @@ export const SettingsView = memo(function SettingsView({
   onReplayWelcome,
   initialSection,
 }: SettingsViewProps) {
-  const { agents, saveAgent, deleteAgent } = useAgentContext();
   const islandLayout = useSettingsStore((s) => s.islandLayout);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection ?? "general");
   const macIslandTitlebarOffsetClass = "";
@@ -140,14 +135,6 @@ export const SettingsView = memo(function SettingsView({
             onUpdateAppSettings={updateAppSettings}
           />
         );
-      case "agents":
-        return (
-          <AgentSettings
-            agents={agents}
-            onSave={saveAgent}
-            onDelete={deleteAgent}
-          />
-        );
       case "mcp":
         return <McpSettings />;
       case "engines":
@@ -168,8 +155,8 @@ export const SettingsView = memo(function SettingsView({
       case "skills":
         return (
           <PlaceholderSection
-            title="Skills"
-            description="Create, install, and manage agent skills that extend what your AI coding agents can do."
+            title="技能"
+            description="创建、安装并管理智能体技能，扩展 AI 编程智能体的能力。"
             icon={Sparkles}
             comingSoon
           />
@@ -177,8 +164,8 @@ export const SettingsView = memo(function SettingsView({
       case "custom-agents":
         return (
           <PlaceholderSection
-            title="Agents"
-            description="Build and configure custom agents with specialized tools, prompts, and workflows."
+            title="智能体"
+            description="构建并配置拥有专属工具、提示词和工作流的自定义智能体。"
             icon={Users}
             comingSoon
           />
@@ -188,7 +175,7 @@ export const SettingsView = memo(function SettingsView({
       default:
         return null;
     }
-  }, [activeSection, appSettings, updateAppSettings, agents, saveAgent, deleteAgent, glassSupported, macLiquidGlassSupported, onReplayWelcome]);
+  }, [activeSection, appSettings, updateAppSettings, glassSupported, macLiquidGlassSupported, onReplayWelcome]);
 
   return (
     <div className={`island flex flex-1 flex-col overflow-hidden bg-background ${islandLayout ? "rounded-[var(--island-radius)]" : "rounded-none"}`}>
@@ -209,7 +196,7 @@ export const SettingsView = memo(function SettingsView({
             <PanelLeft className="h-4 w-4" />
           </Button>
         )}
-        <span className={`leading-none text-sm font-semibold text-foreground ${macIslandTitlebarOffsetClass}`}>Settings</span>
+        <span className={`leading-none text-sm font-semibold text-foreground ${macIslandTitlebarOffsetClass}`}>设置</span>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -234,7 +221,7 @@ export const SettingsView = memo(function SettingsView({
                   <span className="flex-1">{item.label}</span>
                   {item.comingSoon && (
                     <span className="rounded bg-foreground/[0.06] px-1.5 py-px text-[10px] font-medium text-muted-foreground/70">
-                      Soon
+                      即将
                     </span>
                   )}
                 </button>

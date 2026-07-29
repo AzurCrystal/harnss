@@ -58,7 +58,7 @@ export function BrowserStartPage({
           {recentHistory.length > 0 && (
             <div className="mt-4">
               <div className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-foreground/25">
-                Recent
+                最近访问
               </div>
               <div className="space-y-px">
                 {recentHistory.map((entry) => {

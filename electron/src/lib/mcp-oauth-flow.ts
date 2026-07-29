@@ -12,7 +12,7 @@ async function findFreePort(): Promise<number> {
     server.listen(0, () => {
       const addr = server.address();
       if (!addr || typeof addr === "string") {
-        server.close(() => reject(new Error("Could not determine port")));
+        server.close(() => reject(new Error("无法确定端口")));
         return;
       }
       const port = addr.port;
@@ -51,7 +51,7 @@ export async function authenticateMcpServer(
         resolved = true;
         cleanup();
         log("MCP_OAUTH", `Timeout waiting for OAuth callback for "${serverName}"`);
-        resolve({ error: "Authentication timed out. Please try again." });
+        resolve({ error: "认证超时，请重试。" });
       }
     }, 120_000);
 
@@ -59,7 +59,7 @@ export async function authenticateMcpServer(
     callbackServer = http.createServer(async (req, res) => {
       if (!req.url?.startsWith("/callback")) {
         res.writeHead(404);
-        res.end("Not found");
+        res.end("未找到");
         return;
       }
 
@@ -69,25 +69,25 @@ export async function authenticateMcpServer(
 
       if (error) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end("<html><body><h2>Authentication failed</h2><p>You can close this tab.</p></body></html>");
+        res.end("<html><body><h2>认证失败</h2><p>您可以关闭此标签页。</p></body></html>");
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
           cleanup();
           log("MCP_OAUTH", `OAuth error for "${serverName}": ${error}`);
-          resolve({ error: `OAuth error: ${error}` });
+          resolve({ error: `OAuth 错误：${error}` });
         }
         return;
       }
 
       if (!code) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end("<html><body><h2>Missing authorization code</h2><p>You can close this tab.</p></body></html>");
+        res.end("<html><body><h2>缺少授权码</h2><p>您可以关闭此标签页。</p></body></html>");
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
           cleanup();
-          resolve({ error: "No authorization code received" });
+          resolve({ error: "未收到授权码" });
         }
         return;
       }
@@ -102,7 +102,7 @@ export async function authenticateMcpServer(
         });
 
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end("<html><body><h2>Authentication successful!</h2><p>You can close this tab and return to Harnss.</p></body></html>");
+        res.end("<html><body><h2>认证成功！</h2><p>您可以关闭此标签页并返回 Harnss。</p></body></html>");
 
         if (!resolved) {
           resolved = true;
@@ -115,18 +115,18 @@ export async function authenticateMcpServer(
             resolve({ accessToken: tokens.access_token });
           } else {
             log("MCP_OAUTH", `Token exchange completed but no access_token found (result=${result})`);
-            resolve({ error: "Token exchange succeeded but no access token was returned" });
+            resolve({ error: "令牌交换成功，但未返回访问令牌" });
           }
         }
       } catch (err) {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end("<html><body><h2>Authentication failed</h2><p>You can close this tab.</p></body></html>");
+        res.end("<html><body><h2>认证失败</h2><p>您可以关闭此标签页。</p></body></html>");
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
           cleanup();
           const msg = reportError("MCP_OAUTH", err, { context: "token-exchange", serverName });
-          resolve({ error: `Token exchange failed: ${msg}` });
+          resolve({ error: `令牌交换失败：${msg}` });
         }
       }
     });
@@ -156,7 +156,7 @@ export async function authenticateMcpServer(
           clearTimeout(timeout);
           cleanup();
           const msg = reportError("MCP_OAUTH", err, { context: "flow-initiation", serverName });
-          resolve({ error: `OAuth initiation failed: ${msg}` });
+          resolve({ error: `OAuth 发起失败：${msg}` });
         }
       }
     });

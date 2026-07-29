@@ -12,7 +12,7 @@
 
 import React, { useMemo } from "react";
 import { motion } from "motion/react";
-import type { ChatSession, EngineId, InstalledAgent, TodoItem, BackgroundAgent } from "@/types";
+import type { ChatSession, TodoItem, BackgroundAgent } from "@/types";
 import type { SessionPaneState } from "@/hooks/session/useSessionPane";
 import { usePaneController, type PaneControllerContext } from "@/hooks/usePaneController";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -23,7 +23,6 @@ import { BottomComposer } from "@/components/BottomComposer";
 import { TodoPanel } from "@/components/TodoPanel";
 import { BackgroundAgentsPanel } from "@/components/BackgroundAgentsPanel";
 import { SplitPaneToolStrip } from "@/components/split/SplitPaneToolStrip";
-import type { CodexModelSummary } from "@/hooks/session/types";
 import type { GrabbedElement } from "@/types";
 import type { SplitViewState } from "@/hooks/useSplitView";
 import { getChatPaneMinWidthPx } from "@/lib/layout/workspace-constraints";
@@ -55,11 +54,7 @@ export interface SplitChatPaneProps {
 
   // Chat settings
   showThinking: boolean;
-  acpPermissionBehavior: "ask" | "auto_accept" | "allow_all";
-  onAcpPermissionBehaviorChange: (behavior: "ask" | "auto_accept" | "allow_all") => void;
 
-  // Agents
-  agents: InstalledAgent[];
 
   // Dev tools
   showDevFill: boolean;
@@ -70,22 +65,14 @@ export interface SplitChatPaneProps {
   grabbedElements: GrabbedElement[];
   onRemoveGrabbedElement: (id: string) => void;
 
-  // Locked engine
-  lockedEngine: EngineId | null;
-  lockedAgentId: string | null;
 
   // Worktree
   projectPath: string | undefined;
   selectedWorktreePath: string | null | undefined;
   onSelectWorktree?: (path: string | null) => void;
 
-  // Codex
-  codexModelData: CodexModelSummary[];
-
   // Callbacks
   spaceId: string;
-  onRevert?: (checkpointId: string) => void;
-  onFullRevert?: (checkpointId: string) => void;
   onTopScrollProgress: (progress: number) => void;
   onClosePane: () => void;
   onFocus: () => void;
@@ -103,15 +90,12 @@ export interface SplitChatPaneProps {
   bgAgents: {
     agents: BackgroundAgent[];
     dismissAgent: (id: string) => void;
-    stopAgent: (id: string, taskId: string) => void;
   };
 
   // Tool drag
   onToolDragStart: (event: React.DragEvent<HTMLButtonElement>, toolId: ToolId) => void;
   onToolDragEnd: () => void;
 
-  // Navigation
-  onManageACPs?: () => void;
 
   // Chat pane drag
   onChatPaneDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -141,23 +125,15 @@ function SplitChatPaneInner({
   sidebarOpen,
   onToggleSidebar,
   showThinking,
-  acpPermissionBehavior,
-  onAcpPermissionBehaviorChange,
-  agents,
   showDevFill,
   onSeedDevExampleConversation,
   onSeedDevExampleSpaceData,
   grabbedElements,
   onRemoveGrabbedElement,
-  lockedEngine,
-  lockedAgentId,
   projectPath,
   selectedWorktreePath,
   onSelectWorktree,
-  codexModelData,
   spaceId,
-  onRevert,
-  onFullRevert,
   onTopScrollProgress,
   onClosePane,
   onFocus,
@@ -167,7 +143,6 @@ function SplitChatPaneInner({
   activeContextualTool,
   activeTodos,
   bgAgents,
-  onManageACPs,
   onToolDragStart,
   onToolDragEnd,
   onChatPaneDragOver,
@@ -237,7 +212,6 @@ function SplitChatPaneInner({
               titleGenerating={session?.titleGenerating}
               planMode={paneController.panePlanMode}
               permissionMode={paneController.panePermissionMode}
-              acpPermissionBehavior={paneController.paneEngine === "acp" ? acpPermissionBehavior : undefined}
               onToggleSidebar={displayIndex === 0 ? onToggleSidebar : () => {}}
               showDevFill={isActiveSessionPane ? showDevFill : false}
               onSeedDevExampleConversation={isActiveSessionPane ? onSeedDevExampleConversation : undefined}
@@ -252,8 +226,6 @@ function SplitChatPaneInner({
             showThinking={showThinking}
             extraBottomPadding={!!paneState.pendingPermission}
             sessionId={sessionId}
-            onRevert={onRevert}
-            onFullRevert={onFullRevert}
             onTopScrollProgress={onTopScrollProgress}
           />
           <div
@@ -270,39 +242,24 @@ function SplitChatPaneInner({
               isProcessing={paneState.isProcessing}
               queuedCount={isActiveSessionPane ? queuedCount : 0}
               model={paneController.paneModel}
-              claudeEffort={paneController.paneClaudeEffort}
               planMode={paneController.panePlanMode}
               permissionMode={paneController.panePermissionMode}
               onModelChange={paneController.handlePaneModelChange}
-              onClaudeModelEffortChange={paneController.handlePaneClaudeModelEffortChange}
+              thinkingLevels={paneController.paneThinkingLevels}
+              thinkingLevel={paneController.paneThinkingLevel}
+              onThinkingLevelChange={paneController.handlePaneThinkingLevelChange}
               onPlanModeChange={paneController.handlePanePlanModeChange}
               onPermissionModeChange={paneController.handlePanePermissionModeChange}
               projectPath={projectPath}
               contextUsage={paneState.contextUsage}
               isCompacting={paneState.isCompacting}
               onCompact={paneState.engine.compact}
-              agents={agents}
-              selectedAgent={paneController.selectedPaneAgent}
-              onAgentChange={paneController.handlePaneAgentChange}
               slashCommands={paneController.paneSlashCommands}
-              acpConfigOptions={paneController.paneAcpConfigOptions}
-              acpConfigOptionsLoading={paneController.paneAcpConfigOptionsLoading}
-              onACPConfigChange={paneController.handlePaneAcpConfigChange}
-              acpPermissionBehavior={acpPermissionBehavior}
-              onAcpPermissionBehaviorChange={onAcpPermissionBehaviorChange}
-              supportedModels={paneController.paneSupportedModels}
-              codexModelsLoadingMessage={paneController.paneCodexModelsLoadingMessage}
-              codexEffort={paneController.paneCodexEffort}
-              onCodexEffortChange={paneController.handlePaneCodexEffortChange}
-              codexModelData={codexModelData}
               grabbedElements={isActiveSessionPane ? grabbedElements : []}
               onRemoveGrabbedElement={onRemoveGrabbedElement}
-              lockedEngine={isActiveSessionPane ? lockedEngine : (paneController.paneEngine ?? null)}
-              lockedAgentId={isActiveSessionPane ? lockedAgentId : (session?.agentId ?? null)}
               selectedWorktreePath={selectedWorktreePath}
               onSelectWorktree={isActiveSessionPane ? onSelectWorktree : undefined}
               isEmptySession={paneState.messages.length === 0}
-              onManageACPs={onManageACPs}
             />
           </div>
         </div>
@@ -317,7 +274,6 @@ function SplitChatPaneInner({
               agents={bgAgents.agents}
               expandEditToolCallsByDefault={expandEditToolCallsByDefault}
               onDismiss={bgAgents.dismissAgent}
-              onStopAgent={bgAgents.stopAgent}
             />
           </div>
         )}

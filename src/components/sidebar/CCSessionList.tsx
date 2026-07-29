@@ -12,11 +12,11 @@ function formatRelativeDate(isoString: string): string {
   const diffHours = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);
 
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diffMins < 1) return "刚刚";
+  if (diffMins < 60) return `${diffMins} 分钟前`;
+  if (diffHours < 24) return `${diffHours} 小时前`;
+  if (diffDays < 7) return `${diffDays} 天前`;
+  return date.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
 }
 
 export function CCSessionList({
@@ -54,7 +54,7 @@ export function CCSessionList({
   if (sessions.length === 0) {
     return (
       <p className="px-3 py-2 text-xs text-muted-foreground">
-        No Claude Code sessions found
+        未找到 Claude Code 会话
       </p>
     );
   }

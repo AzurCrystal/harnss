@@ -118,7 +118,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground">
-        <p>No project selected</p>
+        <p>未选择项目</p>
       </div>
     );
   }
@@ -176,11 +176,11 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <KanbanSquare className="h-4 w-4 shrink-0" />
-                <h3 className="truncate">{projectName ? `${projectName} Jira Board` : "Jira Board"}</h3>
+                <h3 className="truncate">{projectName ? `${projectName} Jira 看板` : "Jira 看板"}</h3>
               </div>
               {config && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {config.projectKey ? `${config.projectKey} on ${config.instanceUrl}` : config.instanceUrl}
+                  {config.projectKey ? `${config.projectKey} · ${config.instanceUrl}` : config.instanceUrl}
                 </p>
               )}
             </div>
@@ -189,7 +189,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
             {onClose && (
               <Button variant="ghost" size="sm" onClick={onClose} className="no-drag h-8 gap-1.5 px-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Chat
+                返回对话
               </Button>
             )}
             <Button
@@ -209,7 +209,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-between">
                 <span className="truncate">
-                  {boardData.boards.find((b) => b.id === boardData.selectedBoardId)?.name || "Select a board"}
+                  {boardData.boards.find((b) => b.id === boardData.selectedBoardId)?.name || "选择看板"}
                 </span>
                 <ChevronDown className="w-4 h-4 ms-2 flex-shrink-0" />
               </Button>
@@ -231,8 +231,8 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
               <Button variant="outline" size="sm" className="w-full justify-between text-xs">
                 <span className="truncate">
                   {boardData.selectedSprintId
-                    ? (boardData.sprints.find((s) => s.id === boardData.selectedSprintId)?.name ?? "Select sprint")
-                    : "All issues"}
+                    ? (boardData.sprints.find((s) => s.id === boardData.selectedSprintId)?.name ?? "选择迭代")
+                    : "全部问题"}
                 </span>
                 <ChevronDown className="w-3 h-3 ms-2 flex-shrink-0" />
               </Button>
@@ -242,7 +242,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
                 onClick={() => boardData.setSelectedSprintId("")}
                 className="flex items-center justify-between"
               >
-                All issues
+                全部问题
                 {!boardData.selectedSprintId && <Check className="w-3 h-3 ms-2 text-muted-foreground" />}
               </DropdownMenuItem>
               {boardData.sprints.map((sprint) => (
@@ -255,7 +255,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
                     <span className="truncate">{sprint.name}</span>
                     {sprint.state === "active" && (
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                        active
+                        进行中
                       </Badge>
                     )}
                   </span>
@@ -275,7 +275,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
               <Button variant="ghost" size="sm" className="h-7 w-full justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <ArrowUpDown className="w-3 h-3" />
-                  Sort: {SORT_LABELS[boardData.sortBy]}
+                  排序：{SORT_LABELS[boardData.sortBy]}
                 </span>
                 <ChevronDown className="w-3 h-3" />
               </Button>
@@ -298,7 +298,7 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
 
       {/* Drag hint */}
       <div className="border-b border-border/50 px-4 py-2 text-[11px] text-muted-foreground">
-        Drag cards between columns to transition them in Jira.
+        在列之间拖动卡片即可在 Jira 中变更状态。
       </div>
 
       {/* Board grid */}
@@ -339,9 +339,9 @@ export const JiraBoardPanel = React.memo(function JiraBoardPanel({
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         onConfirm={() => void handleDeleteConfig()}
-        title="Remove Jira Configuration"
-        description="This will disconnect the Jira board from this project. You can reconnect it later."
-        confirmLabel="Remove"
+        title="移除 Jira 配置"
+        description="这将断开此项目与 Jira 看板的连接，之后可以重新连接。"
+        confirmLabel="移除"
       />
     </div>
   );

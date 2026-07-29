@@ -155,12 +155,12 @@ const RegularTool = memo(function RegularTool({
       ))}
       {isRunning ? (
         <TextShimmer as="span" className="shrink-0 whitespace-nowrap font-medium" duration={1.8} spread={1.5}>
-          {getToolLabel(message.toolName ?? "", "active") ?? message.toolName ?? "Running"}
+          {getToolLabel(message.toolName ?? "", "active") ?? message.toolName ?? "运行中"}
         </TextShimmer>
       ) : (
         <span className={`shrink-0 whitespace-nowrap font-medium ${isError ? "text-red-400/70" : "text-foreground/60"}`}>
           {isError
-            ? `Failed to ${getToolLabel(message.toolName ?? "", "failure")}`
+            ? (getToolLabel(message.toolName ?? "", "failure") ?? "运行失败")
             : (getToolLabel(message.toolName ?? "", "past") ?? message.toolName)}
         </span>
       )}

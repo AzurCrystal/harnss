@@ -1,4 +1,4 @@
-import type { ChatFolder, ChatSession, InstalledAgent } from "@/types";
+import type { ChatFolder, ChatSession } from "@/types";
 import type { FolderSidebarItem } from "@/lib/sidebar/grouping";
 import { SessionItem } from "./SessionItem";
 import { FolderSection } from "./FolderSection";
@@ -10,14 +10,12 @@ export function PinnedSection({
   activeSessionId,
   islandLayout,
   folders,
-  agents,
 }: {
   sessions: ChatSession[];
   pinnedFolders?: FolderSidebarItem[];
   activeSessionId: string | null;
   islandLayout: boolean;
   folders: ChatFolder[];
-  agents?: InstalledAgent[];
 }) {
   const {
     selectSession,
@@ -48,7 +46,6 @@ export function PinnedSection({
             onPinFolder={(pinned) => pinFolder(folder.projectId, folder.id, pinned)}
             onRenameFolder={(name) => renameFolder(folder.projectId, folder.id, name)}
             onDeleteFolder={() => deleteFolder(folder.projectId, folder.id)}
-            agents={agents}
           />
         );
       })}
@@ -64,7 +61,6 @@ export function PinnedSection({
           onPinToggle={() => pinSession(session.id, false)}
           folders={folders}
           onMoveToFolder={(folderId) => moveSessionToFolder(session.id, folderId)}
-          agents={agents}
           onOpenInSplitView={openInSplitView ? () => openInSplitView(session.id) : undefined}
           canOpenInSplitView={canOpenSessionInSplitView?.(session.id) ?? true}
         />

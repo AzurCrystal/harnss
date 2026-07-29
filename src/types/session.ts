@@ -99,8 +99,9 @@ export interface SessionBase {
   planMode?: boolean;
   totalCost: number;
   engine?: EngineId;
+  /** Persisted backend provenance used only to reject non-OMP resume identities. */
+  sourceEngine?: string;
   agentSessionId?: string;
-  agentId?: string;
   codexThreadId?: string;
   /** Which folder this chat belongs to (undefined = root level). */
   folderId?: string;

@@ -89,12 +89,12 @@ function JiraIssueListView({ data }: { data: JiraIssueSearchData }) {
   const totalCount = inner?.totalCount ?? data.total;
 
   if (issues.length === 0) {
-    return <McpEmptyState message="No issues found" />;
+    return <McpEmptyState message="未找到问题" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={totalCount ?? issues.length} noun={totalCount != null ? "issue" : "result"} />
+      <McpListHeader count={totalCount ?? issues.length} noun={totalCount != null ? "问题" : "结果"} />
       {issues.map((issue) => (
         <JiraIssueRow key={issue.key ?? issue.id} issue={issue} />
       ))}
@@ -130,7 +130,7 @@ function JiraIssueRow({ issue }: { issue: JiraIssue }) {
         {issue.key}
       </span>
       <span className="min-w-0 flex-1 truncate text-foreground/80">
-        {fields.summary ?? "Untitled"}
+        {fields.summary ?? "无标题"}
       </span>
       {PrioIcon && (
         <PrioIcon className={`h-3 w-3 shrink-0 ${prioColor}`} />
@@ -169,7 +169,7 @@ function JiraIssueDetailView({ data }: { data: JiraIssueSearchData }) {
   const priority = fields.priority?.name ?? "";
   const assignee = fields.assignee?.displayName;
   const assigneeAvatar = fields.assignee?.avatarUrls?.["48x48"] ?? fields.assignee?.avatarUrls?.["24x24"];
-  const created = fields.created ? new Date(fields.created).toLocaleDateString() : "";
+  const created = fields.created ? new Date(fields.created).toLocaleDateString("zh-CN") : "";
 
   const typeInfo = ISSUETYPE_ICONS[issueType.toLowerCase()];
   const TypeIcon = typeInfo?.icon ?? Circle;
@@ -198,14 +198,14 @@ function JiraIssueDetailView({ data }: { data: JiraIssueSearchData }) {
           )}
         </div>
         <h4 className="text-[13px] font-medium text-foreground/90 wrap-break-word">
-          {fields.summary ?? "Untitled"}
+          {fields.summary ?? "无标题"}
         </h4>
       </div>
 
       {/* Fields */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-3 py-2 text-[11px]">
         {status && (
-          <Field label="Status">
+          <Field label="状态">
             <Badge
               variant="outline"
               className={`h-4 px-1.5 text-[9px] font-medium border-0 ${getStatusColor(status)}`}
@@ -215,12 +215,12 @@ function JiraIssueDetailView({ data }: { data: JiraIssueSearchData }) {
           </Field>
         )}
         {priority && (
-          <Field label="Priority">
+          <Field label="优先级">
             <span className="text-foreground/70">{priority}</span>
           </Field>
         )}
         {assignee && (
-          <Field label="Assignee">
+          <Field label="负责人">
             <span className="inline-flex items-center gap-1.5 text-foreground/70">
               <Avatar size="sm" className="h-5 w-5 ring-1 ring-border/60">
                 {assigneeAvatar && <AvatarImage src={assigneeAvatar} alt={assignee} />}
@@ -233,7 +233,7 @@ function JiraIssueDetailView({ data }: { data: JiraIssueSearchData }) {
           </Field>
         )}
         {created && (
-          <Field label="Created">
+          <Field label="创建时间">
             <span className="text-foreground/40">{created}</span>
           </Field>
         )}
@@ -242,7 +242,7 @@ function JiraIssueDetailView({ data }: { data: JiraIssueSearchData }) {
       {/* Description — full markdown rendering */}
       {descText && (
         <div className="border-t border-foreground/[0.06] px-3 py-2">
-          <p className="text-[10px] text-foreground/30 mb-1 uppercase tracking-wider font-medium">Description</p>
+          <p className="text-[10px] text-foreground/30 mb-1 uppercase tracking-wider font-medium">描述</p>
           <div className="prose dark:prose-invert prose-xs max-w-none text-foreground/70 wrap-break-word">
             <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
               {descText}
@@ -287,12 +287,12 @@ function JiraProjectListView({ data }: { data: JiraProjectListData }) {
   const projects = isArray ? data : (data.values ?? []);
   const total = isArray ? undefined : data.total;
   if (projects.length === 0) {
-    return <McpEmptyState message="No projects found" />;
+    return <McpEmptyState message="未找到项目" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={total ?? projects.length} noun="project" />
+      <McpListHeader count={total ?? projects.length} noun="项目" />
       {projects.map((project) => (
         <div
           key={project.key}
@@ -303,14 +303,14 @@ function JiraProjectListView({ data }: { data: JiraProjectListData }) {
             {project.key}
           </span>
           <span className="min-w-0 flex-1 truncate text-foreground/80">
-            {project.name ?? "Unnamed"}
+            {project.name ?? "未命名"}
           </span>
           <Badge variant="outline" className="h-3.5 px-1 text-[9px] shrink-0">
-            {project.projectTypeKey ?? "project"}
+            {project.projectTypeKey ?? "项目"}
           </Badge>
           {project.issueTypes && (
             <span className="shrink-0 text-[10px] text-foreground/30">
-              {project.issueTypes.length} type{project.issueTypes.length !== 1 ? "s" : ""}
+              {project.issueTypes.length} 种类型
             </span>
           )}
         </div>
@@ -340,12 +340,12 @@ interface JiraTransitionsData {
 function JiraTransitionsView({ data }: { data: JiraTransitionsData }) {
   const transitions = data.transitions;
   if (!transitions || transitions.length === 0) {
-    return <McpEmptyState message="No transitions available" />;
+    return <McpEmptyState message="没有可用的状态转换" />;
   }
 
   return (
     <div className="space-y-0.5">
-      <McpListHeader count={transitions.length} noun="transition" />
+      <McpListHeader count={transitions.length} noun="状态转换" />
       {transitions.map((t) => (
         <div
           key={t.id}

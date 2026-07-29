@@ -19,7 +19,6 @@ import {
   TOOL_PICKER_WIDTH_ISLAND,
   equalWidthFractions,
 } from "@/lib/layout/constants";
-import type { InstalledAgent } from "@/types";
 import { AppSidebar } from "./AppSidebar";
 import { ChatHeader } from "./ChatHeader";
 import { ChatSearchBar } from "./ChatSearchBar";
@@ -33,8 +32,6 @@ import { WelcomeWizard } from "./welcome/WelcomeWizard";
 import { PanelDockPreview } from "./PanelDockPreview";
 import { FilePreviewOverlay } from "./FilePreviewOverlay";
 import { SettingsView } from "./SettingsView";
-import { CodexAuthDialog } from "./CodexAuthDialog";
-import { ACPAuthDialog } from "./ACPAuthDialog";
 import { JiraBoardPanel } from "./JiraBoardPanel";
 import { isMac, isWindows } from "@/lib/utils";
 import { SplitHandle } from "./split/SplitHandle";
@@ -46,6 +43,7 @@ import { MainBottomToolDock } from "./workspace/MainBottomToolDock";
 import { ToolIslandContent } from "./workspace/ToolIslandContent";
 import { RightPanel } from "./workspace/RightPanel";
 import { DRAFT_ID } from "@/hooks/session/types";
+import { buildSessionOptions } from "@/hooks/app-layout/session-utils";
 import { usePaneResize } from "@/hooks/usePaneResize";
 import { useToolColumnResize } from "@/hooks/useToolColumnResize";
 import { useBottomHeightResize } from "@/hooks/useBottomHeightResize";
@@ -79,17 +77,13 @@ import {
 import {
   isNearBottomDockZone,
 } from "@/lib/workspace/drag";
-import { AgentProvider, type AgentContextValue } from "./AgentContext";
 
 export function AppLayout() {
   const o = useAppOrchestrator();
-  const { managers, agentState, state, ui, actions } = o;
+  const { managers, state, ui, actions } = o;
   const {
     sidebar, projectManager, spaceManager, manager, settings, resolvedTheme, spaceTerminals, activeSpaceTerminals, splitView,
   } = managers;
-  const {
-    agents, selectedAgent, saveAgent, deleteAgent, handleAgentChange, lockedEngine, lockedAgentId,
-  } = agentState;
   const {
     activeProjectId, activeProjectPath, activeSpaceProject, activeSpaceTerminalCwd, showThinking,
     hasProjects, isSpaceSwitching, showToolPicker, hasRightPanel,
@@ -103,7 +97,7 @@ export function AppLayout() {
   const {
     handleToggleTool, handleToolReorder, handleNewChat, handleSend,
     handleModelChange, handlePermissionModeChange, handlePlanModeChange,
-    handleClaudeModelEffortChange, handleAgentWorktreeChange, handleStop, handleSelectSession,
+    handleAgentWorktreeChange, handleStop, handleSelectSession,
     handleSendQueuedNow, handleUnqueueMessage, handleCreateProject, handleImportCCSession,
     handleNavigateToMessage, handleStartCreateSpace, handleConfirmCreateSpace, handleCancelCreateSpace,
     handleUpdateSpace, handleDeleteSpace, handleMoveProjectToSpace, handleSeedDevExampleSpaceData,
@@ -315,19 +309,16 @@ export function AppLayout() {
   );
 
   const createSplitPaneDraftSession = useCallback(
-    async (replacedSessionId: string, projectId: string, agent: InstalledAgent | null) => {
-      const wantedEngine = agent?.engine ?? "claude";
-      const wantedModel = settings.getModelForEngine(wantedEngine) || undefined;
-      await manager.createSession(projectId, {
-        model: wantedModel,
-        permissionMode: settings.permissionMode,
-        planMode: settings.planMode,
-        thinkingEnabled: settings.thinking,
-        effort: wantedEngine === "claude" ? settings.claudeEffort : undefined,
-        engine: wantedEngine,
-        agentId: agent?.id ?? "claude-code",
-        cachedConfigOptions: agent?.cachedConfigOptions,
-      });
+    async (replacedSessionId: string, projectId: string) => {
+      await manager.createSession(
+        projectId,
+        buildSessionOptions(
+          settings.getModelForEngine,
+          settings.permissionMode,
+          settings.planMode,
+          settings.thinking,
+        ),
+      );
       splitView.replaceSessionId(replacedSessionId, DRAFT_ID);
       splitView.setFocusedSession(DRAFT_ID);
     },
@@ -405,7 +396,7 @@ export function AppLayout() {
     });
 
     if (!result.ok && result.reason === "insufficient-width") {
-      toast.error("Widen the window to add another split pane.");
+      toast.error("请加宽窗口后再添加分屏窗格。");
     }
 
     return result.ok;
@@ -714,17 +705,6 @@ export function AppLayout() {
     setScrollToMessageId(undefined);
   }, []);
 
-  const handleRevert = useCallback((checkpointId: string) => {
-    if (manager.isConnected && manager.revertFiles) {
-      manager.revertFiles(checkpointId);
-    }
-  }, [manager.isConnected, manager.revertFiles]);
-
-  const handleFullRevert = useCallback((checkpointId: string) => {
-    if (manager.isConnected && manager.fullRevert) {
-      manager.fullRevert(checkpointId);
-    }
-  }, [manager.isConnected, manager.fullRevert]);
 
   const activeSessionProject = manager.activeSession
     ? projectManager.projects.find((project) => project.id === manager.activeSession?.projectId) ?? null
@@ -838,60 +818,25 @@ export function AppLayout() {
 
   // ── Pane controller context (shared between active pane and split panes) ──
   const paneControllerCtx = useMemo<PaneControllerContext>(() => ({
-    agents,
-    selectedAgent,
     settings: {
       getModelForEngine: settings.getModelForEngine,
       permissionMode: settings.permissionMode,
       planMode: settings.planMode,
-      claudeEffort: settings.claudeEffort,
-      acpPermissionBehavior: settings.acpPermissionBehavior,
     },
-    handleModelChange,
-    handleClaudeModelEffortChange,
-    handlePlanModeChange,
-    handlePermissionModeChange,
-    handleAgentChange,
     handleStop,
     handleComposerClear,
     wrappedHandleSend,
-    manager: {
-      setSessionModel: manager.setSessionModel,
-      setSessionClaudeModelAndEffort: manager.setSessionClaudeModelAndEffort,
-      setSessionPlanMode: manager.setSessionPlanMode,
-      setSessionPermissionMode: manager.setSessionPermissionMode,
-      setCodexEffort: manager.setCodexEffort,
-      codexEffort: manager.codexEffort,
-      codexRawModels: manager.codexRawModels,
-      codexModelsLoadingMessage: manager.codexModelsLoadingMessage,
-      cachedClaudeModels: manager.cachedClaudeModels,
-      acpConfigOptions: manager.acpConfigOptions,
-      acpConfigOptionsLoading: manager.acpConfigOptionsLoading,
-      setACPConfig: manager.setACPConfig,
-    },
     splitView: {
       setFocusedSession: splitView.setFocusedSession,
     },
     createSplitPaneDraftSession,
     queueSplitPaneSendAfterSwitch,
   }), [
-    agents, selectedAgent, settings, manager, splitView.setFocusedSession,
-    handleModelChange, handleClaudeModelEffortChange, handlePlanModeChange,
-    handlePermissionModeChange, handleAgentChange, handleStop,
-    handleComposerClear, wrappedHandleSend,
+    settings, splitView.setFocusedSession,
+    handleStop, handleComposerClear, wrappedHandleSend,
     createSplitPaneDraftSession, queueSplitPaneSendAfterSwitch,
   ]);
 
-  // ── Agent context (eliminates agent prop drilling to 4+ children) ──
-  const agentContextValue = useMemo<AgentContextValue>(() => ({
-    agents,
-    selectedAgent,
-    saveAgent,
-    deleteAgent,
-    handleAgentChange,
-    lockedEngine,
-    lockedAgentId,
-  }), [agents, selectedAgent, saveAgent, deleteAgent, handleAgentChange, lockedEngine, lockedAgentId]);
 
   // Split top-row and bottom-dock props are now passed to <SplitTopRowItem> and
   // <SplitBottomToolIsland> components — see their usage in the JSX below.
@@ -960,11 +905,6 @@ export function AppLayout() {
     onPreviewFile: handlePreviewFile,
     collapsedRepos: settings.collapsedRepos,
     onToggleRepoCollapsed: settings.toggleRepoCollapsed,
-    mcpServerStatuses: manager.mcpServerStatuses,
-    mcpStatusPreliminary: manager.mcpStatusPreliminary,
-    onRefreshMcpStatus: manager.refreshMcpStatus,
-    onReconnectMcpServer: manager.reconnectMcpServer,
-    onRestartWithMcpServers: manager.restartWithMcpServers,
   });
 
   const renderMainWorkspaceToolContent = useCallback((
@@ -975,35 +915,23 @@ export function AppLayout() {
       toolId={toolId}
       persistKey={`main:${spaceManager.activeSpaceId}`}
       headerControls={controls}
-      projectPath={activeProjectPath}
+      projectPath={activeSpaceTerminalCwd ?? activeProjectPath}
       projectRoot={activeSpaceProject?.path}
-      projectId={activeProjectId ?? null}
       sessionId={manager.activeSessionId}
       messages={manager.messages}
-      activeEngine={manager.activeSession?.engine}
       isActiveSessionPane={true}
-      hasLiveSession={!manager.isDraft}
+      isSessionProcessing={manager.isProcessing}
+      isSessionCompacting={manager.isCompacting}
       {...toolIslandCtx}
     />
-  ), [activeProjectId, activeProjectPath, activeSpaceProject?.path, manager.activeSession?.engine, manager.activeSessionId, manager.isDraft, manager.messages, spaceManager.activeSpaceId, toolIslandCtx]);
+  ), [activeProjectPath, activeSpaceProject?.path, activeSpaceTerminalCwd, manager.activeSessionId, manager.isCompacting, manager.isProcessing, manager.messages, spaceManager.activeSpaceId, toolIslandCtx]);
   const handleMoveMainBottomToolToTop = useCallback(
     (islandId: string) => moveBottomToolToTop(mainToolWorkspace, islandId, canFitToolAsNewColumn),
     [mainToolWorkspace, canFitToolAsNewColumn],
   );
-  const showCodexAuthDialog =
-    !!manager.activeSessionId &&
-    manager.activeSession?.engine === "codex" &&
-    manager.codexAuthRequired;
-  const acpAuthAgentName = manager.acpAuthAgentId
-    ? agents.find((agent) => agent.id === manager.acpAuthAgentId)?.name ?? manager.acpAuthAgentId
-    : "ACP Agent";
-  const showAcpAuthDialog =
-    !!manager.acpAuthSessionId &&
-    manager.acpAuthRequired;
 
   return (
     <ThemeProvider value={resolvedTheme}>
-    <AgentProvider value={agentContextValue}>
     <div
       className={`relative flex h-screen overflow-hidden bg-sidebar text-foreground${settings.islandLayout ? "" : " no-islands"}${settings.islandShine ? "" : " no-island-shine"}`}
       style={islandLayoutVars}
@@ -1248,31 +1176,22 @@ export function AppLayout() {
                             sidebarOpen={sidebar.isOpen}
                             sidebarToggle={sidebar.toggle}
                             showThinking={showThinking}
-                            acpPermissionBehavior={settings.acpPermissionBehavior}
-                            setAcpPermissionBehavior={settings.setAcpPermissionBehavior}
-                            agents={agents}
                             devFillEnabled={devFillEnabled}
                             handleSeedDevExampleSpaceData={handleSeedDevExampleSpaceData}
                             seedDevExampleConversation={manager.seedDevExampleConversation}
                             grabbedElements={grabbedElements}
                             handleRemoveGrabbedElement={handleRemoveGrabbedElement}
-                            lockedEngine={lockedEngine}
-                            lockedAgentId={lockedAgentId}
                             handleAgentWorktreeChange={handleAgentWorktreeChange}
-                            handleRevert={manager.isConnected && manager.revertFiles ? handleRevert : undefined}
-                            handleFullRevert={manager.isConnected && manager.fullRevert ? handleFullRevert : undefined}
                             makePaneScrollCallback={makePaneScrollCallback}
                             setScrollToMessageId={setScrollToMessageId}
                             handlePreviewFile={handlePreviewFile}
                             handleElementGrab={handleElementGrab}
                             handleCloseSplitPane={handleCloseSplitPane}
-                            codexRawModels={manager.codexRawModels}
                             queuedCount={manager.queuedCount}
                             availableContextual={availableContextual}
                             activeTodos={activeTodos}
                             bgAgents={bgAgents}
                             getPreviewPaneMetrics={getPreviewPaneMetrics}
-                            onManageACPs={() => setShowSettings("agents")}
                           />
                         )}
 
@@ -1376,8 +1295,6 @@ export function AppLayout() {
                                 commitSplitToolDrop={commitSplitToolDrop}
                                 resetSplitToolDrag={resetSplitToolDrag}
                                 toolIslandCtx={toolIslandCtx}
-                                acpPermissionBehavior={settings.acpPermissionBehavior}
-                                handleAgentWorktreeChange={handleAgentWorktreeChange}
                               />
                             )}
                             {displayIndex < bottomRowRenderEntries.length - 1 && (
@@ -1477,7 +1394,6 @@ export function AppLayout() {
                   titleGenerating={manager.activeSession?.titleGenerating}
                   planMode={activePaneCtrl?.panePlanMode ?? settings.planMode}
                   permissionMode={activePaneCtrl?.panePermissionMode}
-                  acpPermissionBehavior={manager.activeSession?.engine === "acp" ? settings.acpPermissionBehavior : undefined}
                   onToggleSidebar={sidebar.toggle}
                   showDevFill={devFillEnabled}
                   onSeedDevExampleConversation={manager.seedDevExampleConversation}
@@ -1500,8 +1416,6 @@ export function AppLayout() {
                 scrollToMessageId={scrollToMessageId}
                 onScrolledToMessage={handleScrolledToMessage}
                 sessionId={manager.activeSessionId}
-                onRevert={manager.isConnected && manager.revertFiles ? handleRevert : undefined}
-                onFullRevert={manager.isConnected && manager.fullRevert ? handleFullRevert : undefined}
                 onTopScrollProgress={handleTopScrollProgress}
                 onSendQueuedNow={handleSendQueuedNow}
                 onUnqueueQueuedMessage={handleUnqueueMessage}
@@ -1524,39 +1438,25 @@ export function AppLayout() {
                   isProcessing={manager.isProcessing}
                   queuedCount={manager.queuedCount}
                   model={activePaneCtrl?.paneModel ?? settings.model}
-                  claudeEffort={activePaneCtrl?.paneClaudeEffort ?? settings.claudeEffort}
                   planMode={activePaneCtrl?.panePlanMode ?? settings.planMode}
                   permissionMode={activePaneCtrl?.panePermissionMode ?? (manager.sessionInfo?.permissionMode ?? settings.permissionMode)}
                   onModelChange={activePaneCtrl?.handlePaneModelChange ?? handleModelChange}
-                  onClaudeModelEffortChange={activePaneCtrl?.handlePaneClaudeModelEffortChange ?? handleClaudeModelEffortChange}
+                  thinkingLevels={activePaneCtrl?.paneThinkingLevels ?? manager.thinkingLevels}
+                  thinkingLevel={activePaneCtrl?.paneThinkingLevel ?? manager.thinkingLevel}
+                  onThinkingLevelChange={activePaneCtrl?.handlePaneThinkingLevelChange ?? manager.setThinkingLevel}
                   onPlanModeChange={activePaneCtrl?.handlePanePlanModeChange ?? handlePlanModeChange}
                   onPermissionModeChange={activePaneCtrl?.handlePanePermissionModeChange ?? handlePermissionModeChange}
                   projectPath={activeProjectPath}
                   contextUsage={manager.contextUsage}
                   isCompacting={manager.isCompacting}
                   onCompact={manager.compact}
-                  agents={agents}
-                  selectedAgent={activePaneCtrl?.selectedPaneAgent ?? selectedAgent}
-                  onAgentChange={activePaneCtrl?.handlePaneAgentChange ?? handleAgentChange}
                   slashCommands={activePaneCtrl?.paneSlashCommands ?? manager.slashCommands}
-                  acpConfigOptions={activePaneCtrl?.paneAcpConfigOptions ?? manager.acpConfigOptions}
-                  acpConfigOptionsLoading={activePaneCtrl?.paneAcpConfigOptionsLoading ?? manager.acpConfigOptionsLoading}
-                  onACPConfigChange={activePaneCtrl?.handlePaneAcpConfigChange ?? manager.setACPConfig}
-                  acpPermissionBehavior={settings.acpPermissionBehavior}
-                  onAcpPermissionBehaviorChange={settings.setAcpPermissionBehavior}
                   supportedModels={activePaneCtrl?.paneSupportedModels ?? manager.supportedModels}
-                  codexModelsLoadingMessage={activePaneCtrl?.paneCodexModelsLoadingMessage ?? manager.codexModelsLoadingMessage}
-                  codexEffort={activePaneCtrl?.paneCodexEffort ?? manager.codexEffort}
-                  onCodexEffortChange={activePaneCtrl?.handlePaneCodexEffortChange ?? manager.setCodexEffort}
-                  codexModelData={manager.codexRawModels}
                   grabbedElements={grabbedElements}
                   onRemoveGrabbedElement={handleRemoveGrabbedElement}
-                  lockedEngine={lockedEngine}
-                  lockedAgentId={lockedAgentId}
                   selectedWorktreePath={activeSpaceTerminalCwd}
                   onSelectWorktree={handleAgentWorktreeChange}
                   isEmptySession={manager.messages.length === 0}
-                  onManageACPs={() => setShowSettings("agents")}
                 />
               </div>
               </>
@@ -1753,23 +1653,6 @@ export function AppLayout() {
         )}
         </div>{/* end showSettings wrapper */}
       </div>
-      {showCodexAuthDialog && (
-        <CodexAuthDialog
-          sessionId={manager.activeSessionId!}
-          onComplete={() => manager.clearCodexAuthRequired()}
-          onCancel={() => manager.clearCodexAuthRequired()}
-        />
-      )}
-      {showAcpAuthDialog && (
-        <ACPAuthDialog
-          sessionId={manager.acpAuthSessionId!}
-          agentId={manager.acpAuthAgentId}
-          agentName={acpAuthAgentName}
-          authMethods={manager.acpAuthMethods}
-          onComplete={(result) => manager.completeAcpAuth(result)}
-          onCancel={manager.cancelAcpAuth}
-        />
-      )}
       <FilePreviewOverlay
         filePath={previewFile?.path ?? null}
         sourceRect={previewFile?.sourceRect ?? null}
@@ -1787,7 +1670,6 @@ export function AppLayout() {
         />
       )}
     </div>
-    </AgentProvider>
     </ThemeProvider>
   );
 }

@@ -219,7 +219,7 @@ function SidebarArrow({ anchorElement }: SidebarArrowProps) {
           className="italic text-foreground/[0.16]"
           style={{ fontFamily: DISPLAY_FONT, fontSize: "17px" }}
         >
-          your threads are in the sidebar
+          你的对话都在侧边栏里
         </span>
       </motion.div>
 
@@ -354,10 +354,10 @@ export const WelcomeScreen = memo(function WelcomeScreen({
               className="text-5xl italic"
               style={{ fontFamily: DISPLAY_FONT, color: "oklch(0.65 0.22 25)" }}
             >
-              Open a project
+              打开项目
             </h1>
             <p className="max-w-[300px] text-center text-base leading-relaxed text-muted-foreground">
-              Choose a folder to anchor your sessions, tools, and file context.
+              选择一个文件夹，作为会话、工具和文件上下文的锚点。
             </p>
           </motion.div>
 
@@ -371,7 +371,7 @@ export const WelcomeScreen = memo(function WelcomeScreen({
             whileTap={{ scale: 0.97 }}
           >
             <FolderOpen className="h-4 w-4" />
-            Choose folder
+            选择文件夹
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </motion.button>
         </motion.div>

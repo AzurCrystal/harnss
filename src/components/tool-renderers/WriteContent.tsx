@@ -136,7 +136,7 @@ export function WriteContent({ message }: { message: UIMessage }) {
       <Suspense
         fallback={
           <div className="flex items-center justify-center text-[11px] text-foreground/35" style={{ height: `${heightPx}px` }}>
-            Loading editor
+            正在加载编辑器
           </div>
         }
       >

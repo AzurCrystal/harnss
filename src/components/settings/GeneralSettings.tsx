@@ -66,15 +66,15 @@ export const GeneralSettings = memo(function GeneralSettings({
 
   return (
     <div className="flex h-full flex-col">
-      <SettingsHeader title="General" description="Application-wide preferences" />
+      <SettingsHeader title="通用" description="应用级偏好设置" />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-6 py-2">
           {/* ── Updates section ── */}
-          <SettingsSection icon={Download} label="Updates" first>
+          <SettingsSection icon={Download} label="更新" first>
             <SettingRow
-              label="Include pre-release updates"
-              description="Receive beta versions with the latest features. Disable to only get stable releases."
+              label="接收预发布版本更新"
+              description="接收包含最新功能的测试版本。关闭后仅获取稳定版更新。"
             >
               <Switch
                 checked={allowPrerelease}
@@ -84,10 +84,10 @@ export const GeneralSettings = memo(function GeneralSettings({
           </SettingsSection>
 
           {/* ── Sidebar section ── */}
-          <SettingsSection icon={MessageSquare} label="Sidebar">
+          <SettingsSection icon={MessageSquare} label="侧边栏">
             <SettingRow
-              label="Recent chats per project"
-              description="Number of chats shown by default in each project. Click 'Show more' in the sidebar to load additional chats."
+              label="每个项目的最近对话数"
+              description="每个项目默认显示的对话数量。在侧边栏点击“显示更多”可加载更多对话。"
             >
               <SettingsSelect
                 value={String(chatLimit)}
@@ -98,16 +98,16 @@ export const GeneralSettings = memo(function GeneralSettings({
           </SettingsSection>
 
           {/* ── Editor section ── */}
-          <SettingsSection icon={Code} label="Editor">
+          <SettingsSection icon={Code} label="编辑器">
             <SettingRow
-              label="Default editor"
-              description="Choose which editor opens when you click 'Open in Editor'. Auto tries Cursor, VS Code, then Zed."
+              label="默认编辑器"
+              description="选择点击“在编辑器中打开”时使用的编辑器。“自动”会依次尝试 Cursor、VS Code 和 Zed。"
             >
               <SettingsSelect
                 value={preferredEditor}
                 onValueChange={handleEditorChange}
                 options={[
-                  { value: "auto", label: "Auto" },
+                  { value: "auto", label: "自动" },
                   { value: "cursor", label: "Cursor" },
                   { value: "code", label: "VS Code" },
                   { value: "zed", label: "Zed" },
@@ -117,17 +117,17 @@ export const GeneralSettings = memo(function GeneralSettings({
           </SettingsSection>
 
           {/* ── Voice Dictation section ── */}
-          <SettingsSection icon={Mic} label="Voice Dictation">
+          <SettingsSection icon={Mic} label="语音听写">
             <SettingRow
-              label="Dictation mode"
-              description="Native uses your OS dictation (macOS only). Whisper runs a local AI model for speech-to-text on all platforms (~40 MB download on first use)."
+              label="听写模式"
+              description="“系统听写”使用操作系统的听写功能（仅限 macOS）。Whisper 在所有平台上运行本地 AI 模型进行语音转文字（首次使用需下载约 40 MB）。"
             >
               <SettingsSelect
                 value={voiceDictation}
                 onValueChange={handleVoiceDictationChange}
                 options={[
-                  { value: "native", label: "Native (OS)" },
-                  { value: "whisper", label: "Whisper (Local AI)" },
+                  { value: "native", label: "系统听写" },
+                  { value: "whisper", label: "Whisper（本地 AI）" },
                 ]}
               />
             </SettingRow>

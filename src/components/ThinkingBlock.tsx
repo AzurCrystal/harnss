@@ -190,10 +190,10 @@ export const ThinkingBlock = memo(function ThinkingBlock({
         <Minus className={`h-3 w-3 ${isThinking ? "text-foreground/40" : "text-foreground/30"}`} />
         {isThinking ? (
           <TextShimmer as="span" className="italic opacity-60" duration={1.8} spread={1.5}>
-            Thinking...
+            正在思考…
           </TextShimmer>
         ) : (
-          <span className="italic text-foreground/40">Thought</span>
+          <span className="italic text-foreground/40">思考过程</span>
         )}
       </CollapsibleTrigger>
       {/* 3-line 3D preview — only visible while actively thinking + collapsed */}

@@ -188,7 +188,7 @@ export function MainBottomToolDock({
                   {renderToolContent(entry.island.toolId, (
                     <PanelDockControls
                       isBottom={true}
-                      moveLabel="Move to top row"
+                      moveLabel="移到顶行"
                       onMovePlacement={() => onMoveBottomToolToTop(entry.island.id)}
                       onDragStart={(event) => {
                         event.dataTransfer.setData("text/plain", entry.island.id);

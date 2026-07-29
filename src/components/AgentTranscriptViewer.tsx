@@ -20,45 +20,56 @@ import {
 } from "@/components/ui/dialog";
 import { ToolCall } from "@/components/ToolCall";
 import { AgentIcon } from "@/components/AgentIcon";
-import { ENGINE_ICONS } from "@/lib/engine-icons";
+import { OMP_ENGINE_ICON } from "@/lib/engine-icons";
 import { reportError } from "@/lib/analytics/analytics";
 import type { UIMessage } from "@/types";
 
-const CLAUDE_ICON = ENGINE_ICONS["claude"];
+const OMP_ICON = OMP_ENGINE_ICON;
 const REMARK_PLUGINS = [remarkGfm];
 
 interface AgentTranscriptViewerProps {
-  outputFile: string;
+  parentSessionId: string;
+  subagentId: string;
+  sessionFile?: string;
   agentDescription: string;
   expandEditToolCallsByDefault: boolean;
   onClose: () => void;
 }
 
-// ── JSONL entry shapes ──
-
-interface ContentBlock {
-  type: string;
-  text?: string;
-  thinking?: string;
-  id?: string;
-  name?: string;
-  input?: Record<string, unknown>;
-  tool_use_id?: string;
-  content?: string | ContentBlock[];
-  is_error?: boolean;
+interface OmpTextBlock {
+  type: "text";
+  text: string;
 }
 
-interface TranscriptEntry {
-  type: string;
-  message?: {
-    role?: string;
-    content?: string | ContentBlock[];
-    stop_reason?: string | null;
-  };
-  [key: string]: unknown;
+interface OmpThinkingBlock {
+  type: "thinking";
+  thinking: string;
 }
 
-// ── Flattened display item ──
+interface OmpToolCallBlock {
+  type: "toolCall";
+  id: string;
+  name: string;
+  arguments: unknown;
+}
+
+type OmpAssistantBlock = OmpTextBlock | OmpThinkingBlock | OmpToolCallBlock;
+
+interface OmpAssistantMessage {
+  role: "assistant";
+  content: OmpAssistantBlock[];
+}
+
+interface OmpToolResultMessage {
+  role: "toolResult";
+  toolCallId: string;
+  toolName: string;
+  content: unknown;
+  details?: unknown;
+  isError: boolean;
+}
+
+type TranscriptMessage = OmpAssistantMessage | OmpToolResultMessage;
 
 type DisplayItem =
   | { kind: "text"; text: string }
@@ -66,13 +77,13 @@ type DisplayItem =
   | { kind: "tool"; message: UIMessage };
 
 /**
- * Modal dialog displaying the full JSONL transcript of a background agent.
- * Parses tool_use/tool_result pairs into UIMessage objects and renders them
- * using the same ToolCall component as the main chat — full BashContent,
- * ReadContent, EditContent, etc.
+ * Modal dialog displaying an OMP subagent transcript through the official RPC.
+ * Assistant blocks and paired tool-result messages reuse the main ToolCall UI.
  */
 export function AgentTranscriptViewer({
-  outputFile,
+  parentSessionId,
+  subagentId,
+  sessionFile,
   agentDescription,
   expandEditToolCallsByDefault,
   onClose,
@@ -83,34 +94,42 @@ export function AgentTranscriptViewer({
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
-        const result = await window.claude.readAgentOutput(outputFile);
+        const result = await window.claude.omp.command(
+          parentSessionId,
+          sessionFile
+            ? { type: "get_subagent_messages", sessionFile }
+            : { type: "get_subagent_messages", subagentId },
+        );
         if (cancelled) return;
         if (result.error) {
           setError(result.error);
         } else {
-          const entries = (result.messages ?? []) as TranscriptEntry[];
-          setItems(buildDisplayItems(entries));
+          const messages = parseTranscriptMessages(result.data);
+          if (!messages) {
+            setError("OMP 返回了无效的子智能体记录");
+          } else {
+            setItems(buildDisplayItems(messages));
+          }
         }
       } catch (err) {
         if (cancelled) return;
-        const msg = reportError("TRANSCRIPT_LOAD", err);
-        setError(msg);
+        setError(reportError("TRANSCRIPT_LOAD", err));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [outputFile]);
+  }, [parentSessionId, sessionFile, subagentId]);
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/50 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <AgentIcon icon={CLAUDE_ICON} size={16} className="opacity-60" />
-            Agent Transcript — {agentDescription}
+            <AgentIcon icon={OMP_ICON} size={16} className="opacity-60" />
+            智能体记录 — {agentDescription}
           </DialogTitle>
         </DialogHeader>
 
@@ -119,7 +138,7 @@ export function AgentTranscriptViewer({
             {loading && (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-foreground/40">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading transcript…
+                正在加载记录…
               </div>
             )}
 
@@ -132,7 +151,7 @@ export function AgentTranscriptViewer({
 
             {!loading && !error && items.length === 0 && (
               <div className="py-8 text-center text-sm text-foreground/40">
-                No transcript data available.
+                暂无记录数据。
               </div>
             )}
 
@@ -181,7 +200,7 @@ function TranscriptItem({
 function TextRow({ text }: { text: string }) {
   return (
     <div className="flex gap-2.5 px-5 py-1">
-      <AgentIcon icon={CLAUDE_ICON} size={14} className="mt-1 shrink-0 opacity-50" />
+      <AgentIcon icon={OMP_ICON} size={14} className="mt-1 shrink-0 opacity-50" />
       <div className="min-w-0 flex-1 prose dark:prose-invert prose-xs max-w-none text-[12px] text-foreground/70 wrap-break-word
         [&_p]:my-1 [&_p]:leading-relaxed
         [&_pre]:my-1 [&_pre]:rounded [&_pre]:bg-foreground/[0.04] [&_pre]:px-2 [&_pre]:py-1.5 [&_pre]:text-[11px]
@@ -204,7 +223,7 @@ function ThinkingRow({ text }: { text: string }) {
       <CollapsibleTrigger asChild>
         <div className="flex items-center gap-1.5 px-5 py-0.5 text-[11px] text-foreground/30 cursor-pointer hover:text-foreground/50 transition-colors">
           <ChevronRight className={`h-2.5 w-2.5 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
-          <span className="italic truncate">Thinking: {preview}</span>
+          <span className="italic truncate">思考：{preview}</span>
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
@@ -216,102 +235,131 @@ function ThinkingRow({ text }: { text: string }) {
   );
 }
 
-// ── Parse JSONL into display items ──
+// ── Parse OMP transcript messages into display items ──
 
-/**
- * Walks JSONL entries and builds display items:
- * - Text blocks → { kind: "text" }
- * - Thinking blocks → { kind: "thinking" }
- * - tool_use + matching tool_result → { kind: "tool", message: UIMessage }
- *
- * Tool pairing: first pass collects all tool_result blocks into a Map keyed
- * by tool_use_id, then tool_use blocks look up their result to build a
- * complete UIMessage that the ToolCall component can render with full fidelity.
- */
-function buildDisplayItems(entries: TranscriptEntry[]): DisplayItem[] {
-  // First pass: collect all tool_result blocks keyed by tool_use_id
-  const resultMap = new Map<string, { content: unknown; isError: boolean }>();
-  for (const entry of entries) {
-    const content = entry.message?.content;
-    if (!Array.isArray(content)) continue;
-    for (const block of content) {
-      if (block?.type === "tool_result" && block.tool_use_id) {
-        const resultContent = typeof block.content === "string"
-          ? block.content
-          : Array.isArray(block.content)
-            ? block.content
-                .filter((b): b is ContentBlock => b?.type === "text" && typeof b.text === "string")
-                .map((b) => b.text)
-                .join("\n")
-            : "";
-        resultMap.set(block.tool_use_id, {
-          content: resultContent,
-          isError: !!block.is_error,
-        });
+function parseTranscriptMessages(data: unknown): TranscriptMessage[] | null {
+  if (!isRecord(data) || !Array.isArray(data.messages)) return null;
+
+  const messages: TranscriptMessage[] = [];
+  for (const rawMessage of data.messages) {
+    if (!isRecord(rawMessage)) continue;
+
+    if (rawMessage.role === "assistant" && Array.isArray(rawMessage.content)) {
+      const content: OmpAssistantBlock[] = [];
+      for (const rawBlock of rawMessage.content) {
+        if (!isRecord(rawBlock)) continue;
+        if (rawBlock.type === "text" && typeof rawBlock.text === "string") {
+          content.push({ type: "text", text: rawBlock.text });
+        } else if (rawBlock.type === "thinking" && typeof rawBlock.thinking === "string") {
+          content.push({ type: "thinking", thinking: rawBlock.thinking });
+        } else if (
+          rawBlock.type === "toolCall"
+          && typeof rawBlock.id === "string"
+          && typeof rawBlock.name === "string"
+        ) {
+          content.push({
+            type: "toolCall",
+            id: rawBlock.id,
+            name: rawBlock.name,
+            arguments: rawBlock.arguments,
+          });
+        }
       }
-    }
-  }
-
-  // Second pass: build display items
-  const items: DisplayItem[] = [];
-  let toolCounter = 0;
-
-  for (const entry of entries) {
-    if (entry.type === "system" || entry.type === "result" || entry.type === "progress") continue;
-
-    const content = entry.message?.content;
-    if (!content) continue;
-
-    // String content (simple user text, usually tool results — skip, they're paired)
-    if (typeof content === "string") {
-      // Only show non-tool-result user text
-      if (entry.message?.role === "user" && !content.includes("tool_use_id")) {
-        if (content.trim()) items.push({ kind: "text", text: content });
-      }
+      messages.push({ role: "assistant", content });
       continue;
     }
 
-    if (!Array.isArray(content)) continue;
-
-    for (const block of content) {
-      if (!block || typeof block !== "object") continue;
-
-      switch (block.type) {
-        case "text":
-          if (block.text?.trim()) {
-            items.push({ kind: "text", text: block.text });
-          }
-          break;
-
-        case "thinking":
-          if (block.thinking?.trim()) {
-            items.push({ kind: "thinking", text: block.thinking });
-          }
-          break;
-
-        case "tool_use": {
-          // Pair with result via tool_use_id
-          const result = block.id ? resultMap.get(block.id) : undefined;
-          const toolMsg: UIMessage = {
-            id: `transcript-tool-${toolCounter++}`,
-            role: "tool_call",
-            content: "",
-            toolName: block.name ?? "Tool",
-            toolInput: (block.input ?? {}) as Record<string, unknown>,
-            toolResult: result?.content ?? undefined,
-            toolError: result?.isError ?? false,
-            timestamp: Date.now(),
-          };
-          items.push({ kind: "tool", message: toolMsg });
-          break;
-        }
-
-        // tool_result blocks are consumed via resultMap pairing, skip here
-        case "tool_result":
-          break;
-      }
+    if (
+      rawMessage.role === "toolResult"
+      && typeof rawMessage.toolCallId === "string"
+      && typeof rawMessage.toolName === "string"
+      && "content" in rawMessage
+    ) {
+      messages.push({
+        role: "toolResult",
+        toolCallId: rawMessage.toolCallId,
+        toolName: rawMessage.toolName,
+        content: rawMessage.content,
+        ...("details" in rawMessage ? { details: rawMessage.details } : {}),
+        isError: rawMessage.isError === true,
+      });
     }
   }
+  return messages;
+}
 
+function buildDisplayItems(messages: TranscriptMessage[]): DisplayItem[] {
+  const results = new Map<string, OmpToolResultMessage>();
+  for (const message of messages) {
+    if (message.role === "toolResult") results.set(message.toolCallId, message);
+  }
+
+  const items: DisplayItem[] = [];
+  let toolCounter = 0;
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    for (const block of message.content) {
+      if (block.type === "text") {
+        if (block.text.trim()) items.push({ kind: "text", text: block.text });
+        continue;
+      }
+      if (block.type === "thinking") {
+        if (block.thinking.trim()) items.push({ kind: "thinking", text: block.thinking });
+        continue;
+      }
+
+      const result = results.get(block.id);
+      const toolResult = result ? toolResultFor(result) : undefined;
+      const toolInput = isRecord(block.arguments)
+        ? block.arguments
+        : block.arguments === undefined ? {} : { value: block.arguments };
+      const toolMessage: UIMessage = {
+        id: `transcript-tool-${toolCounter++}`,
+        role: "tool_call",
+        content: "",
+        toolName: block.name,
+        toolInput,
+        ...(toolResult ? { toolResult } : {}),
+        ...(result?.isError ? { toolError: true } : {}),
+        timestamp: Date.now(),
+      };
+      items.push({ kind: "tool", message: toolMessage });
+    }
+  }
   return items;
+}
+
+function toolResultFor(message: OmpToolResultMessage): UIMessage["toolResult"] {
+  const text = messageContentText(message.content);
+  const details = message.details;
+  if (!text && !isRecord(details)) return undefined;
+
+  const result: NonNullable<UIMessage["toolResult"]> = {};
+  if (text) {
+    result.content = text;
+    result.stdout = text;
+  }
+  if (isRecord(details)) {
+    result.structuredContent = details;
+    if (typeof details.stdout === "string") result.stdout = details.stdout;
+    if (typeof details.stderr === "string") result.stderr = details.stderr;
+  }
+  return result;
+}
+
+function messageContentText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
+  const text: string[] = [];
+  for (const block of content) {
+    if (isRecord(block) && block.type === "text" && typeof block.text === "string") {
+      text.push(block.text);
+    }
+  }
+  return text.join("\n");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

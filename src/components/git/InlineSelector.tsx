@@ -20,7 +20,7 @@ export function InlineSelector({
   const ref = useRef<HTMLDivElement>(null);
 
   const selectedLabel = useMemo(
-    () => options.find((o) => o.value === value)?.label ?? (value || "Select…"),
+    () => options.find((o) => o.value === value)?.label ?? (value || "选择…"),
     [options, value],
   );
 

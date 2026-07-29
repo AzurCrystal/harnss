@@ -30,8 +30,8 @@ ${Array.from({ length: 220 }, (_, index) => `- Step ${index + 1}`).join("\n")}`;
       </ChatUiStateProvider>,
     );
 
-    expect(markup).toContain("Presented plan");
+    expect(markup).toContain("已展示计划");
     expect(markup).toContain("Step 220");
-    expect(markup).not.toContain("Show full plan");
+    expect(markup).not.toContain("显示完整计划");
   });
 });

@@ -87,16 +87,16 @@ function getNotificationContent(
   switch (eventType) {
     case "exitPlanMode":
       return {
-        title: "Ready to implement",
-        body: `${actor} has a plan and is waiting for your approval.`,
+        title: "可以开始实现",
+        body: `${actor} 已制定计划，正在等待你的批准。`,
       };
     case "askUserQuestion": {
       const questions = request.toolInput?.questions as
         | Array<{ question: string }>
         | undefined;
       return {
-        title: `Question from ${actor}`,
-        body: questions?.[0]?.question ?? `${actor} is asking you a question.`,
+        title: `来自 ${actor} 的问题`,
+        body: questions?.[0]?.question ?? `${actor} 正在向你提问。`,
       };
     }
     case "permissions": {
@@ -104,10 +104,10 @@ function getNotificationContent(
       const command = request.toolInput?.command as string | undefined;
       const detail = filePath ?? (command ? String(command).slice(0, 80) : "");
       return {
-        title: "Permission required",
+        title: "需要权限",
         body: detail
-          ? `Allow ${request.toolName}: ${detail}?`
-          : `Allow ${request.toolName}?`,
+          ? `允许 ${request.toolName}：${detail}？`
+          : `允许 ${request.toolName}？`,
       };
     }
   }
@@ -196,12 +196,13 @@ export function useNotifications({
     prevSessionState.current = tracked;
 
     if (completed) {
+      const completedSessionId = current.sessionId;
       if (consumeSuppressedSessionCompletion(current.sessionId)) return;
       fireNotification(
         settings.sessionComplete,
-        "Task complete",
-        `${activeActor} has finished processing.`,
-        current.sessionId ? () => openSession(current.sessionId) : undefined,
+        "任务完成",
+        `${activeActor} 已完成处理。`,
+        completedSessionId ? () => openSession(completedSessionId) : undefined,
       );
     }
   }, [activeActor, activeSessionId, isProcessing, openSession, settings]);
@@ -212,11 +213,11 @@ export function useNotifications({
       const detail = (evt as CustomEvent<BackgroundSessionCompleteDetail>).detail;
       if (!detail) return;
       if (consumeSuppressedSessionCompletion(detail.sessionId)) return;
-      const title = detail.sessionTitle || "Background session";
+      const title = detail.sessionTitle || "后台会话";
       fireNotification(
         settings.sessionComplete,
-        "Task complete",
-        `${title}: ${detail.actor} has finished processing.`,
+        "任务完成",
+        `${title}：${detail.actor} 已完成处理。`,
         () => openSession(detail.sessionId),
       );
     };
@@ -234,7 +235,7 @@ export function useNotifications({
       const eventSettings = settings[eventType];
       const { title, body } = getNotificationContent(eventType, detail.permission, detail.actor);
       const sessionPrefix = detail.sessionTitle
-        ? `${detail.sessionTitle}: `
+        ? `${detail.sessionTitle}：`
         : "";
       fireNotification(
         eventSettings,

@@ -109,7 +109,7 @@ export function BrowserNavBar({
           className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-s-md text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/65 disabled:cursor-not-allowed disabled:opacity-20"
           onClick={onGoBack}
           disabled={!canNavigate || !canGoBack}
-          title="Back"
+          title="后退"
         >
           <ArrowLeft className="h-3 w-3" />
         </button>
@@ -119,7 +119,7 @@ export function BrowserNavBar({
           className="flex h-6 w-6 cursor-pointer items-center justify-center text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/65 disabled:cursor-not-allowed disabled:opacity-20"
           onClick={onGoForward}
           disabled={!canNavigate || !canGoForward}
-          title="Forward"
+          title="前进"
         >
           <ArrowRight className="h-3 w-3" />
         </button>
@@ -129,7 +129,7 @@ export function BrowserNavBar({
           className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-e-md text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/65 disabled:cursor-not-allowed disabled:opacity-20"
           onClick={onReloadOrStop}
           disabled={!canNavigate}
-          title={isLoading ? "Stop" : "Reload"}
+          title={isLoading ? "停止" : "重新加载"}
         >
           {isLoading ? (
             <XIcon className="h-3 w-3" />
@@ -149,7 +149,7 @@ export function BrowserNavBar({
         }`}
         onClick={onToggleInspect}
         disabled={!canNavigate}
-        title={inspectMode ? "Cancel inspect" : "Grab element"}
+        title={inspectMode ? "取消抓取" : "抓取元素"}
       >
         <Crosshair className="h-3 w-3" />
       </button>
@@ -164,7 +164,7 @@ export function BrowserNavBar({
         }`}
         onClick={onToggleDevTools}
         disabled={!canNavigate}
-        title={isDevToolsOpen ? "Close inspector" : "Open inspector"}
+        title={isDevToolsOpen ? "关闭检查器" : "打开检查器"}
       >
         <Bug className="h-3 w-3" />
       </button>
@@ -179,7 +179,7 @@ export function BrowserNavBar({
         }`}
         onClick={onToggleColorScheme}
         disabled={!canNavigate}
-        title={`Simulating ${colorScheme} mode`}
+        title={`正在模拟${colorScheme === "dark" ? "深色" : "浅色"}模式`}
       >
         {colorScheme === "dark" ? (
           <Moon className="h-3 w-3" />

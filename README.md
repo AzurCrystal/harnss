@@ -23,11 +23,11 @@
 
 ---
 
-Harnss is a cross-platform desktop app that gives you one interface to run, manage, and switch between AI coding agents — Claude Code, Codex, and any ACP-compatible agent — without losing context, sessions, or tool state.
+Harnss is a cross-platform desktop frontend dedicated to oh-my-pi (OMP), with persistent sessions, rich tool rendering, and integrated workspace panels.
 
 **Why Harnss?**
 
-- **One app, every agent.** Run Claude Code, Codex, and custom ACP agents side by side. No more juggling terminals or losing context when switching tools.
+- **OMP without the terminal juggling.** Run and resume OMP sessions from one desktop interface without losing context or tool state.
 - **See what your AI is actually doing.** Tool calls render as interactive cards with word-level diffs, syntax highlighting, and inline bash output — not raw JSON.
 - **Your workspace, your way.** Built-in terminal, browser, git, MCP servers, and file panels — all scoped per project, all staying open while you work.
 
@@ -42,13 +42,6 @@ Harnss is a cross-platform desktop app that gives you one interface to run, mana
   <em>Terminal, browser, git, and MCP integrations — all in one window.</em>
 </p>
 
-<p align="center">
-<img width="2069" height="1333" alt="CleanShot 2026-03-08 at 05 40 20" src="https://github.com/user-attachments/assets/7dc6b42f-398b-405e-9413-7192b2aaecb6" />
-
-
-  <br />
-  <em>One UI - all agents. Browse entire ACP registry.</em>
-</p>
 
 <details>
 <summary>Click to reveal other screenshots</summary>
@@ -73,7 +66,7 @@ https://github.com/user-attachments/assets/41f5bcbc-c141-4a16-b430-79f8e01d107e
 <img width="251" height="198" alt="CleanShot 2026-03-02 at 02 33 04" src="https://github.com/user-attachments/assets/f1c8930f-16fb-4d3f-8d2e-330425965291" />
 
   <br />
-  <em>Run multiple agent sessions side by side — switch instantly without losing progress.</em>
+  <em>Run multiple OMP sessions side by side — switch instantly without losing progress.</em>
 </p>
 
 </details>
@@ -84,9 +77,9 @@ https://github.com/user-attachments/assets/41f5bcbc-c141-4a16-b430-79f8e01d107e
 
 ## Features
 
-### Multi-engine sessions
+### OMP sessions
 
-Run Claude Code (via the Anthropic SDK), Codex, and ACP-compatible agents in parallel. Each session has its own state, history, and context. Switch between them instantly.
+Run multiple OMP sessions in parallel. Each session has its own state, history, and context, and can be switched or arranged in split panes without interrupting the others.
 
 ### Rich tool visualization
 
@@ -108,9 +101,6 @@ Multi-tab PTY terminal backed by native shell processes. An embedded browser for
 
 Projects map to folders on disk. Spaces let you organize projects into named groups with custom icons and colors. Sessions, history, and panel settings are all scoped per project.
 
-### Agent Store
-
-Browse and install agents from the ACP community registry directly in the app. Add custom agents by specifying a command, arguments, environment variables, and an icon. All configuration is managed through Settings — no config files.
 
 ### Plan mode & permission control
 
@@ -138,35 +128,13 @@ Full-text search across session titles and message content. Import and resume co
 
 1. **Download** the latest release for your platform from the [Releases page](https://github.com/OpenSource03/harnss/releases/latest)
 2. **Open a project** — point Harnss at any folder on disk
-3. **Choose an engine** — Claude Code, Codex, or any installed ACP agent — and start working
+3. **Start an OMP session** — choose a model and begin working
 
 ---
 
-## Engines & Agents
+## Runtime
 
-Harnss supports three execution engines out of the box:
-
-| Engine | Protocol | Requirements |
-|--------|----------|--------------|
-| **Claude Code** | Anthropic Agent SDK | Claude account (subscription or API key) |
-| **Codex** | JSON-RPC app-server | Codex CLI in PATH + OpenAI API key or ChatGPT account |
-| **ACP agents** | Agent Client Protocol | Agent-specific (see registry) |
-
-Claude Code and Codex are built-in. ACP agents can be installed from the [ACP Agent Registry](https://agentclientprotocol.com/get-started/registry) inside the app, or configured manually.
-
-**Examples of installable ACP-compatible agents:**
-
-| Agent | Command | Notes |
-|-------|---------|-------|
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `gemini --experimental-acp` | Experimental ACP flag |
-| [Goose](https://github.com/block/goose) | `goose acp` | |
-| [Docker cagent](https://github.com/docker/cagent) | `cagent acp agent.yml` | Container-based agents |
-
-### Adding an agent
-
-Open **Settings → ACP Agents**. The **Agent Store** tab lets you browse and install agents from the community registry. The **My Agents** tab lets you create custom agents — set the binary command, arguments, environment variables, and icon, or paste a JSON definition to auto-fill the form.
-
----
+Harnss uses oh-my-pi (OMP) as its only agent runtime and communicates through the official OMP RPC protocol. Claude Code, Codex, ACP agents, and the ACP Agent Store are not included as agent backends.
 
 ## MCP Servers
 

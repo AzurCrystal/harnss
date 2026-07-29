@@ -2,7 +2,7 @@
   "name": "harnss",
   "version": "0.22.0-beta.2",
   "productName": "Harnss",
-  "description": "Harness your AI coding agents — one desktop app for Claude Code, Codex, and any ACP agent",
+  "description": "Harnss frontend dedicated to oh-my-pi", 
   "author": {
     "name": "Dejan Zegarac",
     "email": "dejanzegarac3@gmail.com"
@@ -24,14 +24,12 @@
     "dist:mac": "pnpm build && electron-builder --mac --config electron-builder.config.js",
     "dist:win": "pnpm build && electron-builder --win --config electron-builder.config.js",
     "dist:linux": "pnpm build && electron-builder --linux --config electron-builder.config.js",
-    "postinstall": "node -e \"require('child_process').execSync('electron-rebuild'+(process.platform==='darwin'?'':' --ignore electron-liquid-glass'),{stdio:'inherit'})\"",
+    "postinstall": "node -e \"if(process.platform==='darwin')require('child_process').execSync('electron-rebuild',{stdio:'inherit'})\"",
     "test": "vitest run --config vitest.config.electron.ts",
     "test:watch": "vitest --config vitest.config.electron.ts"
   },
   "packageManager": "pnpm@10.26.0",
   "dependencies": {
-    "@agentclientprotocol/sdk": "^0.15.0",
-    "@anthropic-ai/claude-agent-sdk": "^0.2.101",
     "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@monaco-editor/react": "^4.7.0",

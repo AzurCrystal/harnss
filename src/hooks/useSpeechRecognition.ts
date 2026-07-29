@@ -106,8 +106,8 @@ export function useSpeechRecognition({
   const nativeHint =
     mode === "native" && !isNativeAvailable
       ? platform === "win32"
-        ? "Press Win + H for voice typing, or enable Whisper in Settings"
-        : "Native dictation unavailable — enable Whisper in Settings"
+        ? "按 Win + H 使用语音输入，或在设置中启用 Whisper"
+        : "原生听写不可用，请在设置中启用 Whisper"
       : null;
 
   // ── Whisper pipeline loader ──
@@ -140,7 +140,7 @@ export function useSpeechRecognition({
         );
       } catch (err) {
         whisperLoadingPromise = null;
-        const msg = err instanceof Error ? err.message : "Failed to load speech model";
+        const msg = err instanceof Error ? err.message : "加载语音模型失败";
         captureException(err instanceof Error ? err : new Error(msg), { label: "WHISPER_LOAD_ERR" });
         setError(msg);
         onErrorRef.current?.(msg);
@@ -161,7 +161,7 @@ export function useSpeechRecognition({
     // Request mic permission via Electron (macOS system dialog)
     const { granted } = await window.claude.speech.requestMicPermission();
     if (!granted) {
-      const msg = "Microphone access denied";
+      const msg = "麦克风访问被拒绝";
       setError(msg);
       onErrorRef.current?.(msg);
       return;
@@ -204,7 +204,7 @@ export function useSpeechRecognition({
             onResultRef.current?.(text);
           }
         } catch (err) {
-          const msg = err instanceof Error ? err.message : "Transcription failed";
+          const msg = err instanceof Error ? err.message : "转写失败";
           captureException(err instanceof Error ? err : new Error(msg), { label: "WHISPER_TRANSCRIBE_ERR" });
           setError(msg);
           onErrorRef.current?.(msg);
@@ -216,7 +216,7 @@ export function useSpeechRecognition({
       recorder.start();
       setIsListening(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to access microphone";
+      const msg = err instanceof Error ? err.message : "无法访问麦克风";
       captureException(err instanceof Error ? err : new Error(msg), { label: "WHISPER_MIC_ERR" });
       setError(msg);
       onErrorRef.current?.(msg);
@@ -238,7 +238,7 @@ export function useSpeechRecognition({
     setError(null);
     const result = await window.claude.speech.startNativeDictation();
     if (!result.ok) {
-      const msg = "Native dictation not available on this platform";
+      const msg = "此平台不支持原生听写";
       setError(msg);
       onErrorRef.current?.(msg);
     }

@@ -1,16 +1,21 @@
+const RELATIVE_TIME_FORMATTER = new Intl.RelativeTimeFormat("zh-CN", {
+  numeric: "auto",
+  style: "narrow",
+});
+
 export function formatRelativeDate(iso: string): string {
   const now = Date.now();
   const then = new Date(iso).getTime();
   const diff = now - then;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
+  if (mins < 1) return RELATIVE_TIME_FORMATTER.format(0, "minute");
+  if (mins < 60) return RELATIVE_TIME_FORMATTER.format(-mins, "minute");
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return RELATIVE_TIME_FORMATTER.format(-hours, "hour");
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d`;
+  if (days < 30) return RELATIVE_TIME_FORMATTER.format(-days, "day");
   const months = Math.floor(days / 30);
-  return `${months}mo`;
+  return RELATIVE_TIME_FORMATTER.format(-months, "month");
 }
 
 export const STATUS_COLORS: Record<string, string> = {
@@ -40,17 +45,17 @@ export function formatWorktreeLabel(
   const tags: string[] = [];
 
   if (repo.isSubRepo) {
-    tags.push("sub");
+    tags.push("子仓库");
     // Only tag linked worktrees within sub-repos (isPrimaryWorktree is true for
     // both root and sub-repos — it just means "not a linked worktree").
-    if (repo.isWorktree && !repo.isPrimaryWorktree) tags.push("worktree");
+    if (repo.isWorktree && !repo.isPrimaryWorktree) tags.push("工作树");
   } else {
     // Root / non-sub repo
-    if (options?.showRoot) tags.push("root");
-    if (repo.isWorktree && !repo.isPrimaryWorktree) tags.push("worktree");
+    if (options?.showRoot) tags.push("根");
+    if (repo.isWorktree && !repo.isPrimaryWorktree) tags.push("工作树");
   }
 
-  return tags.length > 0 ? repo.name + " (" + tags.join(", ") + ")" : repo.name;
+  return tags.length > 0 ? repo.name + "（" + tags.join("、") + "）" : repo.name;
 }
 
 export interface SelectorOption {

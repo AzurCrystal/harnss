@@ -16,7 +16,9 @@ const TRANSPORTS: McpTransport[] = ["stdio", "sse", "http"];
 export interface AddServerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (server: McpServerConfig) => void;
+  onAdd: (server: McpServerConfig) => Promise<void>;
+  disabled?: boolean;
+  error?: string | null;
 }
 
 /** Dialog for adding a new MCP server with transport-conditional form fields. */
@@ -24,6 +26,8 @@ export const AddServerDialog = memo(function AddServerDialog({
   open,
   onOpenChange,
   onAdd,
+  disabled = false,
+  error,
 }: AddServerDialogProps) {
   const [name, setName] = useState("");
   const [transport, setTransport] = useState<McpTransport>("stdio");
@@ -32,6 +36,7 @@ export const AddServerDialog = memo(function AddServerDialog({
   const [envText, setEnvText] = useState("");
   const [url, setUrl] = useState("");
   const [headersText, setHeadersText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const resetForm = useCallback(() => {
     setName("");
@@ -43,8 +48,8 @@ export const AddServerDialog = memo(function AddServerDialog({
     setHeadersText("");
   }, []);
 
-  const handleAdd = useCallback(() => {
-    if (!name.trim()) return;
+  const handleAdd = useCallback(async () => {
+    if (!name.trim() || disabled || submitting) return;
 
     const server: McpServerConfig = {
       name: name.trim(),
@@ -64,9 +69,15 @@ export const AddServerDialog = memo(function AddServerDialog({
       if (Object.keys(headers).length > 0) server.headers = headers;
     }
 
-    onAdd(server);
-    resetForm();
-  }, [name, transport, command, args, envText, url, headersText, onAdd, resetForm]);
+    setSubmitting(true);
+    try {
+      await onAdd(server);
+      resetForm();
+    } catch {
+    } finally {
+      setSubmitting(false);
+    }
+  }, [name, transport, command, args, envText, url, headersText, disabled, submitting, onAdd, resetForm]);
 
   const canSubmit = name.trim() && (transport === "stdio" ? command.trim() : url.trim());
 
@@ -74,12 +85,12 @@ export const AddServerDialog = memo(function AddServerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle className="text-sm">Add MCP Server</DialogTitle>
+          <DialogTitle className="text-sm">添加 MCP 服务器</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           {/* Name */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Name</label>
+            <label className="text-xs font-medium text-muted-foreground">名称</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -90,7 +101,7 @@ export const AddServerDialog = memo(function AddServerDialog({
 
           {/* Transport */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Transport</label>
+            <label className="text-xs font-medium text-muted-foreground">传输方式</label>
             <div className="flex gap-1">
               {TRANSPORTS.map((t) => (
                 <Button
@@ -110,7 +121,7 @@ export const AddServerDialog = memo(function AddServerDialog({
           {transport === "stdio" ? (
             <>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Command</label>
+                <label className="text-xs font-medium text-muted-foreground">命令</label>
                 <Input
                   value={command}
                   onChange={(e) => setCommand(e.target.value)}
@@ -120,7 +131,7 @@ export const AddServerDialog = memo(function AddServerDialog({
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Arguments <span className="text-muted-foreground/60">(space-separated)</span>
+                  参数 <span className="text-muted-foreground/60">（以空格分隔）</span>
                 </label>
                 <Input
                   value={args}
@@ -131,7 +142,7 @@ export const AddServerDialog = memo(function AddServerDialog({
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Environment Variables <span className="text-muted-foreground/60">(KEY=value, one per line)</span>
+                  环境变量 <span className="text-muted-foreground/60">（KEY=value，每行一个）</span>
                 </label>
                 <textarea
                   value={envText}
@@ -145,7 +156,7 @@ export const AddServerDialog = memo(function AddServerDialog({
           ) : (
             <>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">URL</label>
+                <label className="text-xs font-medium text-muted-foreground">URL 地址</label>
                 <Input
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
@@ -155,7 +166,7 @@ export const AddServerDialog = memo(function AddServerDialog({
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Headers <span className="text-muted-foreground/60">(Name=Value, one per line)</span>
+                  请求头 <span className="text-muted-foreground/60">（名称=值，每行一个）</span>
                 </label>
                 <textarea
                   value={headersText}
@@ -168,6 +179,9 @@ export const AddServerDialog = memo(function AddServerDialog({
             </>
           )}
         </div>
+        {error && (
+          <p className="text-[10px] text-destructive" role="alert">{error}</p>
+        )}
         <DialogFooter>
           <Button
             variant="outline"
@@ -178,15 +192,15 @@ export const AddServerDialog = memo(function AddServerDialog({
               onOpenChange(false);
             }}
           >
-            Cancel
+            取消
           </Button>
           <Button
             size="sm"
             className="h-7 text-xs"
-            onClick={handleAdd}
-            disabled={!canSubmit}
+            onClick={() => void handleAdd()}
+            disabled={!canSubmit || disabled || submitting}
           >
-            Add Server
+            添加服务器
           </Button>
         </DialogFooter>
       </DialogContent>
